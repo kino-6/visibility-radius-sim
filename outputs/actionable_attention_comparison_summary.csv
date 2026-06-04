@@ -1,0 +1,5 @@
+scenario,start_population,peak_population,final_population,final_ratio,late_unmatched_mean,late_births_per_eligible_mean,late_selected_actionable_mean,late_selected_phantom_mean
+Current phantom,2547,2748,1056,0.415,0.964,0.0015,0.018,0.85
+"Old behavior, no phantom",2547,2750,1250,0.491,0.812,0.0094,0.106,0.0
+Actionable reserve 50%,2547,2750,2408,0.945,0.228,0.0339,0.412,0.574
+Actionable reserve 75%,2547,2750,2396,0.941,0.224,0.0336,0.455,0.535
