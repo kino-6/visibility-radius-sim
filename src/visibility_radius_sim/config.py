@@ -11,6 +11,7 @@ ScenarioName = Literal["baseline", "sns-2000s"]
 SelectionMode = Literal["percentile", "top-k"]
 LocationModel = Literal["uniform", "clustered"]
 InitialAgeDistribution = Literal["uniform", "japan-1980-stylized"]
+PhantomCandidateMode = Literal["none", "sampled"]
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,9 @@ class SimulationConfig:
     top_k: int = 10
     initial_candidate_pool_multiplier: float = 1.0
     max_candidate_pool_multiplier: float = 1.0
+    phantom_candidate_mode: PhantomCandidateMode = "none"
+    phantom_candidate_sample_cap: int = 512
+    actionable_selection_reserve_fraction: float = 0.0
     trait_mean: float = 0.0
     trait_std: float = 1.0
     preference_alpha: float = 2.0
@@ -104,6 +108,8 @@ class SimulationConfig:
                 pair_duration_std=8.0,
                 initial_candidate_pool_multiplier=1.0,
                 max_candidate_pool_multiplier=300.0,
+                phantom_candidate_mode="sampled",
+                phantom_candidate_sample_cap=512,
                 metadata={
                     "scenario": "sns-2000s",
                     "interpretation": (

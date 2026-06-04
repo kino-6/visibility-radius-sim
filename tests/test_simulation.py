@@ -128,6 +128,10 @@ def test_simulation_produces_metrics_for_each_year() -> None:
             "mean_selected_actionable_share",
             "mean_selection_quota",
             "mean_selection_acceptance_share",
+            "mean_phantom_candidate_count",
+            "mean_sampled_phantom_candidate_count",
+            "mean_selected_phantom_count",
+            "mean_phantom_selection_share",
             "candidate_pool_multiplier",
             "action_radius",
             "blocked_mutual_pair_count",
@@ -257,6 +261,90 @@ def test_top_k_selection_caps_selection_quota() -> None:
     assert metrics["mean_selection_quota"].iloc[0] <= 5
     assert metrics["mean_perceived_candidate_count"].iloc[0] > metrics["mean_visible_candidate_count"].iloc[0]
     assert metrics["mean_selection_acceptance_share"].iloc[0] < 0.1
+
+
+def test_sampled_phantom_candidates_consume_selection_slots() -> None:
+    base_config = dict(
+        years=1,
+        initial_population=220,
+        seed=123,
+        radius_schedule="global",
+        selection_mode="top-k",
+        top_k=8,
+        action_radius=0.08,
+        initial_candidate_pool_multiplier=50.0,
+        max_candidate_pool_multiplier=50.0,
+        worker_count=1,
+    )
+
+    without_phantom = Simulation(SimulationConfig(**base_config, phantom_candidate_mode="none")).run()
+    with_phantom = Simulation(
+        SimulationConfig(
+            **base_config,
+            phantom_candidate_mode="sampled",
+            phantom_candidate_sample_cap=256,
+        )
+    ).run()
+
+    assert with_phantom["mean_phantom_candidate_count"].iloc[0] > 0
+    assert with_phantom["mean_selected_phantom_count"].iloc[0] > 0
+    assert with_phantom["mean_phantom_selection_share"].iloc[0] > 0
+    assert with_phantom["mean_selected_actionable_share"].iloc[0] < without_phantom[
+        "mean_selected_actionable_share"
+    ].iloc[0]
+
+
+def test_sampled_phantom_selection_is_parallel_deterministic() -> None:
+    base_config = dict(
+        years=3,
+        initial_population=180,
+        seed=404,
+        radius_schedule="global",
+        selection_mode="top-k",
+        top_k=8,
+        initial_candidate_pool_multiplier=25.0,
+        max_candidate_pool_multiplier=25.0,
+        phantom_candidate_mode="sampled",
+        phantom_candidate_sample_cap=128,
+        parallel_threshold=1,
+    )
+
+    single_worker_metrics = Simulation(SimulationConfig(**base_config, worker_count=1)).run()
+    parallel_metrics = Simulation(SimulationConfig(**base_config, worker_count=2)).run()
+
+    comparable_columns = [column for column in single_worker_metrics.columns if column != "selection_worker_count"]
+    assert single_worker_metrics[comparable_columns].equals(parallel_metrics[comparable_columns])
+
+
+def test_actionable_reserve_protects_real_selection_slots() -> None:
+    base_config = dict(
+        years=1,
+        initial_population=220,
+        seed=909,
+        radius_schedule="global",
+        selection_mode="top-k",
+        top_k=12,
+        action_radius=0.08,
+        initial_candidate_pool_multiplier=80.0,
+        max_candidate_pool_multiplier=80.0,
+        phantom_candidate_mode="sampled",
+        phantom_candidate_sample_cap=256,
+        worker_count=1,
+    )
+
+    no_reserve = Simulation(
+        SimulationConfig(**base_config, actionable_selection_reserve_fraction=0.0)
+    ).run()
+    with_reserve = Simulation(
+        SimulationConfig(**base_config, actionable_selection_reserve_fraction=0.5)
+    ).run()
+
+    assert with_reserve["mean_selected_actionable_share"].iloc[0] > no_reserve[
+        "mean_selected_actionable_share"
+    ].iloc[0]
+    assert with_reserve["mean_phantom_selection_share"].iloc[0] < no_reserve[
+        "mean_phantom_selection_share"
+    ].iloc[0]
 
 
 def test_action_radius_can_block_visible_mutual_choices() -> None:

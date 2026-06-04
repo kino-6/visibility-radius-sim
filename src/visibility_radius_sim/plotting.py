@@ -255,6 +255,7 @@ def _plot_radius_response(axis: plt.Axes, data: pd.DataFrame) -> None:
         ("births_per_eligible", "Births/eligible", "#2ca02c"),
         ("mean_selection_acceptance_share", "Accepted share", "#d62728"),
         ("mean_selected_actionable_share", "Selected actionable", "#ff7f0e"),
+        ("mean_phantom_selection_share", "Selected phantom", "#9467bd"),
         ("unmatched_rate", "Unmatched", "#17becf"),
         ("reproductive_concentration", "Concentration", "#bcbd22"),
         ("trait_diversity", "Trait diversity", "#e377c2"),
@@ -357,6 +358,15 @@ def _plot_simple_visibility_action(axis: plt.Axes, data: pd.DataFrame) -> None:
             linestyle="--",
             label="Accepted share",
         )
+    if "mean_phantom_selection_share" in data:
+        axis.plot(
+            x,
+            _smooth(data["mean_phantom_selection_share"]),
+            color="#bcbd22",
+            linewidth=2.0,
+            linestyle="-.",
+            label="Selected phantom",
+        )
     axis.set_title("Visibility vs Action")
     axis.set_ylabel("Share")
     axis.set_xlabel(_time_axis_label(data))
@@ -400,6 +410,13 @@ def _write_simple_summary(axis: plt.Axes, data: pd.DataFrame, params: dict[str, 
                 f"final selected actionable: {last['mean_selected_actionable_share']:.1%}",
             ]
         )
+    if "mean_phantom_selection_share" in data:
+        lines.extend(
+            [
+                f"final selected phantom: {last['mean_phantom_selection_share']:.1%}",
+                f"avg selected phantom: {data['mean_phantom_selection_share'].mean():.1%}",
+            ]
+        )
     if "candidate_pool_multiplier" in data:
         lines.append(f"final candidate multiplier: {last['candidate_pool_multiplier']:.1f}x")
     axis.text(0.02, 0.98, "\n".join(lines), va="top", ha="left", family="monospace", fontsize=11)
@@ -429,6 +446,9 @@ def _write_parameter_panel(axis: plt.Axes, params: dict[str, Any], data: pd.Data
             "top_k",
             "initial_candidate_pool_multiplier",
             "max_candidate_pool_multiplier",
+            "phantom_candidate_mode",
+            "phantom_candidate_sample_cap",
+            "actionable_selection_reserve_fraction",
             "selectivity_mean",
             "mutation_std",
             "lifespan_mean",
@@ -511,6 +531,14 @@ def _write_analysis_panel(axis: plt.Axes, data: pd.DataFrame) -> None:
                 f"avg selected actionable: {data['mean_selected_actionable_share'].mean():.2%}",
             ]
         )
+    if "mean_phantom_selection_share" in data:
+        lines.extend(
+            [
+                f"avg phantom candidates: {data['mean_phantom_candidate_count'].mean():.1f}",
+                f"avg sampled phantom: {data['mean_sampled_phantom_candidate_count'].mean():.1f}",
+                f"avg selected phantom: {data['mean_phantom_selection_share'].mean():.2%}",
+            ]
+        )
     if "effective_birth_probability" in data:
         lines.append(f"avg effective birth p: {data['effective_birth_probability'].mean():.3f}")
     if "selection_worker_count" in data:
@@ -563,6 +591,14 @@ def _write_snapshot_panel(axis: plt.Axes, data: pd.DataFrame) -> None:
                 f"selected actionable: {last['mean_selected_actionable_share']:.2%}",
                 f"blocked mutual pairs: {last['blocked_mutual_pair_count']:.0f}",
                 f"action radius: {last['action_radius']:.3f}",
+            ]
+        )
+    if "mean_phantom_selection_share" in data:
+        lines.extend(
+            [
+                f"phantom candidates: {last['mean_phantom_candidate_count']:.1f}",
+                f"sampled phantom: {last['mean_sampled_phantom_candidate_count']:.1f}",
+                f"selected phantom: {last['mean_phantom_selection_share']:.2%}",
             ]
         )
     if "effective_birth_probability" in data:

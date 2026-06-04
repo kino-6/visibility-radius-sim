@@ -35,6 +35,7 @@
   "max_candidate_pool_multiplier": 300.0,
   "phantom_candidate_mode": "sampled",
   "phantom_candidate_sample_cap": 512,
+  "actionable_selection_reserve_fraction": 0.75,
   "trait_mean": 0.0,
   "trait_std": 1.0,
   "preference_alpha": 2.0,

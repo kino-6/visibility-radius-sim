@@ -1,0 +1,7 @@
+variant,final_ratio_mean,final_ratio_min,final_ratio_max,late_ratio_mean,late_unmatched_mean,late_selected_actionable_mean,late_action_coverage_mean,late_bpe_mean
+current_sns,0.554,0.527,0.598,0.501,0.838,0.106,0.113,0.008
+action_radius_0_50,0.694,0.671,0.74,0.622,0.62,0.522,0.535,0.017
+global_action_radius,0.723,0.69,0.771,0.646,0.586,1.0,1.0,0.019
+percentile_selection,0.838,0.792,0.925,0.761,0.41,0.106,0.112,0.026
+no_sns_fixed_local,0.936,0.879,1.024,0.826,0.329,0.356,0.003,0.029
+top_k_64,1.003,0.963,1.064,0.871,0.279,0.112,0.112,0.031

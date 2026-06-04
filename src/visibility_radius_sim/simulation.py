@@ -100,6 +100,10 @@ class Simulation:
             mean_selected_actionable_share=visibility_stats["mean_selected_actionable_share"],
             mean_selection_quota=visibility_stats["mean_selection_quota"],
             mean_selection_acceptance_share=visibility_stats["mean_selection_acceptance_share"],
+            mean_phantom_candidate_count=visibility_stats["mean_phantom_candidate_count"],
+            mean_sampled_phantom_candidate_count=visibility_stats["mean_sampled_phantom_candidate_count"],
+            mean_selected_phantom_count=visibility_stats["mean_selected_phantom_count"],
+            mean_phantom_selection_share=visibility_stats["mean_phantom_selection_share"],
             candidate_pool_multiplier=candidate_pool_multiplier,
             visibility_coverage_rate=visibility_stats["visibility_coverage_rate"],
             theoretical_area_coverage=self._theoretical_area_coverage(visibility_radius),
@@ -292,12 +296,16 @@ class Simulation:
                 "mean_actionable_candidate_count": 0.0,
                 "action_coverage_rate": 0.0,
                 "visibility_action_gap": 0.0,
-                "mean_selected_actionable_share": 0.0,
-                "mean_selection_quota": 0.0,
-                "mean_selection_acceptance_share": 0.0,
-                "visibility_coverage_rate": 0.0,
-                "selection_worker_count": 1.0,
-            }
+            "mean_selected_actionable_share": 0.0,
+            "mean_selection_quota": 0.0,
+            "mean_selection_acceptance_share": 0.0,
+            "mean_phantom_candidate_count": 0.0,
+            "mean_sampled_phantom_candidate_count": 0.0,
+            "mean_selected_phantom_count": 0.0,
+            "mean_phantom_selection_share": 0.0,
+            "visibility_coverage_rate": 0.0,
+            "selection_worker_count": 1.0,
+        }
 
         locations = np.asarray([agent.location for agent in eligible])
         traits = np.asarray([agent.traits for agent in eligible])
@@ -342,6 +350,10 @@ class Simulation:
         perceived_counts: list[float] = []
         acceptance_shares: list[float] = []
         selected_actionable_shares: list[float] = []
+        phantom_counts: list[int] = []
+        sampled_phantom_counts: list[int] = []
+        selected_phantom_counts: list[int] = []
+        phantom_selection_shares: list[float] = []
         for (
             agent_id,
             selected_ids,
@@ -350,6 +362,9 @@ class Simulation:
             selection_quota,
             selected_actionable_count,
             perceived_count,
+            phantom_count,
+            sampled_phantom_count,
+            selected_phantom_count,
         ) in results:
             selections[agent_id] = selected_ids
             visible_counts.append(visible_count)
@@ -360,6 +375,10 @@ class Simulation:
             selected_actionable_shares.append(
                 0.0 if selection_quota <= 0 else selected_actionable_count / selection_quota
             )
+            phantom_counts.append(phantom_count)
+            sampled_phantom_counts.append(sampled_phantom_count)
+            selected_phantom_counts.append(selected_phantom_count)
+            phantom_selection_shares.append(0.0 if selection_quota <= 0 else selected_phantom_count / selection_quota)
 
         coverage_denominator = max(len(eligible) - 1, 1)
         visible_counts_array = np.asarray(visible_counts)
@@ -377,6 +396,10 @@ class Simulation:
             "mean_selected_actionable_share": float(np.mean(selected_actionable_shares)),
             "mean_selection_quota": float(np.mean(selection_quotas)),
             "mean_selection_acceptance_share": float(np.mean(acceptance_shares)),
+            "mean_phantom_candidate_count": float(np.mean(phantom_counts)),
+            "mean_sampled_phantom_candidate_count": float(np.mean(sampled_phantom_counts)),
+            "mean_selected_phantom_count": float(np.mean(selected_phantom_counts)),
+            "mean_phantom_selection_share": float(np.mean(phantom_selection_shares)),
             "visibility_coverage_rate": float(np.mean(np.asarray(visible_counts) / coverage_denominator)),
             "selection_worker_count": float(worker_count),
         }
@@ -392,7 +415,7 @@ class Simulation:
         radius: float,
         action_radius: float,
         candidate_pool_multiplier: float,
-    ) -> tuple[int, set[int], int, int, int, int, float]:
+    ) -> tuple[int, set[int], int, int, int, int, float, int, int, int]:
         distances = np.linalg.norm(locations - agent.location, axis=1)
         candidate_indexes = np.where((distances <= radius) & (np.arange(len(locations)) != index))[0]
         actionable_visibility_radius = min(radius, action_radius)
@@ -401,14 +424,57 @@ class Simulation:
         )[0]
         visible_count = int(candidate_indexes.size)
         actionable_count = int(actionable_indexes.size)
+        phantom_count = self._phantom_candidate_count(visible_count, candidate_pool_multiplier)
+        sampled_phantom_count = min(phantom_count, max(0, self.config.phantom_candidate_sample_cap))
         perceived_count = visible_count * candidate_pool_multiplier
         if visible_count == 0:
-            return agent.id, set(), visible_count, actionable_count, 0, 0, perceived_count
+            return agent.id, set(), visible_count, actionable_count, 0, 0, perceived_count, 0, 0, 0
 
-        scores = traits[candidate_indexes] @ agent.preference_weights
-        keep_count = self._selection_quota(agent, visible_count)
-        top_indexes = np.argsort(scores)[-keep_count:]
-        selected_ids = {int(ids[candidate_indexes[top_index]]) for top_index in top_indexes}
+        real_scores = traits[candidate_indexes] @ agent.preference_weights
+        competition_scores = real_scores
+        competition_real_indexes = np.arange(visible_count, dtype=int)
+        if sampled_phantom_count > 0:
+            phantom_scores = self._sample_phantom_scores(
+                agent=agent,
+                visible_count=visible_count,
+                phantom_count=phantom_count,
+                sampled_phantom_count=sampled_phantom_count,
+            )
+            competition_scores = np.concatenate([real_scores, phantom_scores])
+            competition_real_indexes = np.concatenate(
+                [competition_real_indexes, np.full(sampled_phantom_count, -1, dtype=int)]
+            )
+
+        keep_count = self._selection_quota(agent, int(competition_scores.size))
+        reserved_real_indexes = self._reserved_actionable_candidate_indexes(
+            real_scores=real_scores,
+            candidate_indexes=candidate_indexes,
+            actionable_indexes=actionable_indexes,
+            keep_count=keep_count,
+        )
+        reserved_real_index_set = set(reserved_real_indexes)
+        fill_count = keep_count - len(reserved_real_indexes)
+        selectable_mask = np.asarray(
+            [
+                real_index < 0 or int(real_index) not in reserved_real_index_set
+                for real_index in competition_real_indexes
+            ],
+            dtype=bool,
+        )
+        fill_competition_indexes = np.where(selectable_mask)[0]
+        if fill_count > 0 and fill_competition_indexes.size > 0:
+            fill_count = min(fill_count, int(fill_competition_indexes.size))
+            fill_scores = competition_scores[fill_competition_indexes]
+            top_fill_indexes = fill_competition_indexes[np.argsort(fill_scores)[-fill_count:]]
+        else:
+            top_fill_indexes = np.empty(0, dtype=int)
+        selected_real_indexes = list(reserved_real_indexes) + [
+            int(competition_real_indexes[top_index])
+            for top_index in top_fill_indexes
+            if competition_real_indexes[top_index] >= 0
+        ]
+        selected_phantom_count = int(np.sum(competition_real_indexes[top_fill_indexes] < 0))
+        selected_ids = {int(ids[candidate_indexes[real_index]]) for real_index in selected_real_indexes}
         actionable_ids = {int(ids[actionable_index]) for actionable_index in actionable_indexes}
         selected_actionable_count = len(selected_ids & actionable_ids)
         return (
@@ -419,7 +485,69 @@ class Simulation:
             keep_count,
             selected_actionable_count,
             perceived_count,
+            phantom_count,
+            sampled_phantom_count,
+            selected_phantom_count,
         )
+
+    def _reserved_actionable_candidate_indexes(
+        self,
+        *,
+        real_scores: np.ndarray,
+        candidate_indexes: np.ndarray,
+        actionable_indexes: np.ndarray,
+        keep_count: int,
+    ) -> list[int]:
+        reserve_fraction = float(np.clip(self.config.actionable_selection_reserve_fraction, 0.0, 1.0))
+        reserve_count = min(keep_count, int(np.ceil(keep_count * reserve_fraction)))
+        if reserve_count <= 0 or actionable_indexes.size == 0:
+            return []
+
+        actionable_index_set = set(int(index) for index in actionable_indexes)
+        actionable_real_positions = [
+            position
+            for position, candidate_index in enumerate(candidate_indexes)
+            if int(candidate_index) in actionable_index_set
+        ]
+        if not actionable_real_positions:
+            return []
+
+        reserve_count = min(reserve_count, len(actionable_real_positions))
+        actionable_scores = real_scores[actionable_real_positions]
+        top_positions = np.argsort(actionable_scores)[-reserve_count:]
+        return [int(actionable_real_positions[position]) for position in top_positions]
+
+    def _phantom_candidate_count(self, visible_count: int, candidate_pool_multiplier: float) -> int:
+        if self.config.phantom_candidate_mode == "none" or visible_count <= 0:
+            return 0
+        if self.config.phantom_candidate_mode != "sampled":
+            raise ValueError(f"Unknown phantom candidate mode: {self.config.phantom_candidate_mode}")
+        return max(0, int(round(visible_count * max(candidate_pool_multiplier - 1.0, 0.0))))
+
+    def _sample_phantom_scores(
+        self,
+        *,
+        agent: Agent,
+        visible_count: int,
+        phantom_count: int,
+        sampled_phantom_count: int,
+    ) -> np.ndarray:
+        rng = np.random.default_rng(self._phantom_seed(agent.id, visible_count, phantom_count))
+        phantom_traits = rng.normal(
+            self.config.trait_mean,
+            self.config.trait_std,
+            size=(sampled_phantom_count, self.config.trait_count),
+        )
+        return phantom_traits @ agent.preference_weights
+
+    def _phantom_seed(self, agent_id: int, visible_count: int, phantom_count: int) -> int:
+        base_seed = 0 if self.config.seed is None else int(self.config.seed)
+        return (
+            base_seed * 1_000_003
+            + agent_id * 97_003
+            + visible_count * 1_009
+            + phantom_count * 9_176
+        ) % (2**63 - 1)
 
     def _selection_quota(self, agent: Agent, visible_count: int) -> int:
         if visible_count <= 0:

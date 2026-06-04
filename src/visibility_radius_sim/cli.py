@@ -68,6 +68,19 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--top-k", type=int, default=None)
     run_parser.add_argument("--initial-candidate-pool-multiplier", type=float, default=None)
     run_parser.add_argument("--max-candidate-pool-multiplier", type=float, default=None)
+    run_parser.add_argument(
+        "--phantom-candidate-mode",
+        choices=["none", "sampled"],
+        default=None,
+        help="Whether perceived extra candidates can consume selection slots without being pairable.",
+    )
+    run_parser.add_argument("--phantom-candidate-sample-cap", type=int, default=None)
+    run_parser.add_argument(
+        "--actionable-selection-reserve-fraction",
+        type=float,
+        default=None,
+        help="Fraction of selection slots reserved for real candidates within action radius.",
+    )
     run_parser.add_argument("--mutation-std", type=float, default=None)
     run_parser.add_argument("--lifespan-mean", type=float, default=None)
     run_parser.add_argument("--initial-min-age", type=int, default=None)
@@ -157,6 +170,9 @@ def run_command(args: argparse.Namespace) -> None:
         top_k=args.top_k,
         initial_candidate_pool_multiplier=args.initial_candidate_pool_multiplier,
         max_candidate_pool_multiplier=args.max_candidate_pool_multiplier,
+        phantom_candidate_mode=args.phantom_candidate_mode,
+        phantom_candidate_sample_cap=args.phantom_candidate_sample_cap,
+        actionable_selection_reserve_fraction=args.actionable_selection_reserve_fraction,
         mutation_std=args.mutation_std,
         lifespan_mean=args.lifespan_mean,
         initial_min_age=args.initial_min_age,

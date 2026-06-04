@@ -85,9 +85,13 @@ In this scenario, `radius` and candidate volume are separated:
 - `action_radius`: which visible agents are close enough for an actual pair to form
 - `candidate_pool_multiplier`: perceived candidate-pool expansion from feeds, search, profiles, and recommendations
 - `selection_mode=top-k`: a bounded attention model where agents keep only a fixed number of top candidates even when perceived candidate volume grows hundreds of times
+- `phantom_candidate_mode=sampled`: extra perceived candidates can consume top-k selection slots while remaining unavailable for pair formation
+- `actionable_selection_reserve_fraction`: optional selection-slot reserve for real candidates within action radius
 - `initial_pair_fraction`: an initial stock of existing pairs, so the model does not start in 1980 as if every adult were unpaired
 
-This means the model can represent a key SNS-era asymmetry: visibility can become near-global while practical action remains local or regional. Agents may spend their fixed top-k attention on highly visible but non-actionable candidates, leaving fewer local candidates available for mutual selection.
+This means the model can represent a key SNS-era asymmetry: visibility can become near-global while practical action remains local or regional. Agents may spend their fixed top-k attention on highly visible but non-actionable candidates, leaving fewer local candidates available for mutual selection. In sampled phantom mode, the perceived candidate multiplier becomes causal: synthetic comparison candidates can enter the top-k competition, but they cannot form pairs.
+
+The actionable reserve parameter is a simple intervention knob. For example, `--actionable-selection-reserve-fraction 0.5` means half of the selection slots are filled from real candidates inside action radius before global/phantom comparison candidates can consume the remaining slots.
 
 ```bash
 uv run python -m visibility_radius_sim.cli run \
@@ -128,6 +132,9 @@ uv run python -m visibility_radius_sim.cli run \
   --pair-duration-mean 18 \
   --pair-duration-std 8 \
   --max-candidate-pool-multiplier 300 \
+  --phantom-candidate-mode sampled \
+  --phantom-candidate-sample-cap 512 \
+  --actionable-selection-reserve-fraction 0.5 \
   --birth-probability 0.25 \
   --selectivity 0.15 \
   --mutation-std 0.05 \
@@ -224,6 +231,10 @@ The simulation writes one CSV row per year with:
 - `mean_selected_actionable_share`
 - `mean_selection_quota`
 - `mean_selection_acceptance_share`
+- `mean_phantom_candidate_count`
+- `mean_sampled_phantom_candidate_count`
+- `mean_selected_phantom_count`
+- `mean_phantom_selection_share`
 - `candidate_pool_multiplier`
 - `action_radius`
 - `blocked_mutual_pair_count`
@@ -249,6 +260,8 @@ The simulation writes one CSV row per year with:
 `mean_perceived_candidate_count` multiplies the in-simulation visible candidates by `candidate_pool_multiplier`. This is meant to represent SNS-style comparison pressure where the number of visible profiles, feeds, or recommendation targets can grow far faster than the local agent population.
 
 `mean_selection_acceptance_share` is the selected quota divided by perceived candidate count. In `top-k` mode this share can collapse as perceived candidate volume grows, even if the absolute number of candidates an agent can seriously consider stays fixed.
+
+`mean_phantom_candidate_count` is the average number of non-pairable comparison candidates implied by the candidate multiplier. `mean_sampled_phantom_candidate_count` is how many of those were sampled into the top-k competition for performance. `mean_phantom_selection_share` is the share of top-k slots taken by phantom candidates. Higher values mean more attention is spent on candidates who cannot become pairs in the simulation.
 
 `visibility_action_gap` is the share of eligible agents who are visible but outside action radius. `mean_selected_actionable_share` is the share of selected top candidates who are actually close enough for pair formation. These are useful when studying SNS-like settings where visibility expands much faster than practical action range.
 

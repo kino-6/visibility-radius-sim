@@ -33,7 +33,7 @@
   "top_k": 16,
   "initial_candidate_pool_multiplier": 1.0,
   "max_candidate_pool_multiplier": 300.0,
-  "phantom_candidate_mode": "sampled",
+  "phantom_candidate_mode": "none",
   "phantom_candidate_sample_cap": 512,
   "trait_mean": 0.0,
   "trait_std": 1.0,
