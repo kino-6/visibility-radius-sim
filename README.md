@@ -83,6 +83,7 @@ In this scenario, `radius` and candidate volume are separated:
 
 - `visibility_radius`: which in-simulation agents are spatially/socially visible
 - `action_radius`: which visible agents are close enough for an actual pair to form
+- `allow_cross_region_pairing`: whether agents can form pairs across clustered regions
 - `candidate_pool_multiplier`: perceived candidate-pool expansion from feeds, search, profiles, and recommendations
 - `selection_mode=top-k`: a bounded attention model where agents keep only a fixed number of top candidates even when perceived candidate volume grows hundreds of times
 - `phantom_candidate_mode=sampled`: extra perceived candidates can consume top-k selection slots while remaining unavailable for pair formation
@@ -92,6 +93,8 @@ In this scenario, `radius` and candidate volume are separated:
 This means the model can represent a key SNS-era asymmetry: visibility can become near-global while practical action remains local or regional. Agents may spend their fixed top-k attention on highly visible but non-actionable candidates, leaving fewer local candidates available for mutual selection. In sampled phantom mode, the perceived candidate multiplier becomes causal: synthetic comparison candidates can enter the top-k competition, but they cannot form pairs.
 
 The actionable reserve parameter is a simple intervention knob. For example, `--actionable-selection-reserve-fraction 0.5` means half of the selection slots are filled from real candidates inside action radius before global/phantom comparison candidates can consume the remaining slots.
+
+Clustered locations can also be read as regions or countries. With `--cross-region-pairing block`, agents can still see candidates from other regions, but those candidates are not actionable and cannot form pairs. This lets the model test whether place-bound cultures remain distinct when virtual visibility becomes global.
 
 ```bash
 uv run python -m visibility_radius_sim.cli run \
@@ -125,6 +128,7 @@ uv run python -m visibility_radius_sim.cli run \
   --location-model clustered \
   --location-cluster-count 12 \
   --location-cluster-std 0.035 \
+  --cross-region-pairing allow \
   --action-radius 0.18 \
   --selection-mode top-k \
   --top-k 8 \

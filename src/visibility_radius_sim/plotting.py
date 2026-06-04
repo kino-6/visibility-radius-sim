@@ -434,6 +434,7 @@ def _write_parameter_panel(axis: plt.Axes, params: dict[str, Any], data: pd.Data
             "location_model",
             "location_cluster_count",
             "location_cluster_std",
+            "allow_cross_region_pairing",
             "radius_schedule",
             "visibility_expansion_mid_year",
             "visibility_expansion_duration_years",

@@ -393,6 +393,67 @@ def test_clustered_initial_locations_reduce_action_gap() -> None:
     ].iloc[0]
 
 
+def test_cross_region_pairing_policy_changes_actionable_pool() -> None:
+    base_config = dict(
+        years=1,
+        initial_population=260,
+        seed=808,
+        radius_schedule="global",
+        selection_mode="top-k",
+        top_k=12,
+        action_radius=1.0,
+        location_model="clustered",
+        location_cluster_count=8,
+        location_cluster_std=0.02,
+        initial_candidate_pool_multiplier=1.0,
+        max_candidate_pool_multiplier=1.0,
+        worker_count=1,
+    )
+
+    allowed = Simulation(SimulationConfig(**base_config, allow_cross_region_pairing=True)).run()
+    blocked = Simulation(SimulationConfig(**base_config, allow_cross_region_pairing=False)).run()
+
+    assert blocked["mean_visible_candidate_count"].iloc[0] == allowed["mean_visible_candidate_count"].iloc[0]
+    assert blocked["mean_actionable_candidate_count"].iloc[0] < allowed["mean_actionable_candidate_count"].iloc[0]
+    assert blocked["visibility_action_gap"].iloc[0] > allowed["visibility_action_gap"].iloc[0]
+
+
+def test_region_culture_can_provide_actionable_reserve() -> None:
+    base_config = dict(
+        years=1,
+        initial_population=240,
+        seed=818,
+        radius_schedule="global",
+        selection_mode="top-k",
+        top_k=12,
+        action_radius=0.08,
+        location_model="clustered",
+        location_cluster_count=6,
+        location_cluster_std=0.02,
+        initial_candidate_pool_multiplier=80.0,
+        max_candidate_pool_multiplier=80.0,
+        phantom_candidate_mode="sampled",
+        phantom_candidate_sample_cap=256,
+        actionable_selection_reserve_fraction=0.0,
+        worker_count=1,
+    )
+
+    no_region_culture = Simulation(SimulationConfig(**base_config)).run()
+    with_region_culture = Simulation(
+        SimulationConfig(
+            **base_config,
+            regional_actionable_reserve_fractions=(0.5, 0.5, 0.5, 0.5, 0.5, 0.5),
+        )
+    ).run()
+
+    assert with_region_culture["mean_selected_actionable_share"].iloc[0] > no_region_culture[
+        "mean_selected_actionable_share"
+    ].iloc[0]
+    assert with_region_culture["mean_phantom_selection_share"].iloc[0] < no_region_culture[
+        "mean_phantom_selection_share"
+    ].iloc[0]
+
+
 def test_initial_pair_stock_lowers_unmatched_rate() -> None:
     base_config = dict(
         years=1,

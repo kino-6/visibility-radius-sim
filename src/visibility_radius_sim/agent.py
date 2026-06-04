@@ -18,6 +18,7 @@ class Agent:
     traits: FloatArray
     preference_weights: FloatArray
     selectivity: float
+    region_id: int | None = None
     alive: bool = True
 
     def age_one_year(self) -> bool:
@@ -58,6 +59,7 @@ def create_random_agent(
     selectivity_mean: float,
     selectivity_std: float,
     location: FloatArray | None = None,
+    region_id: int | None = None,
 ) -> Agent:
     age = int(rng.integers(min_age, max_age + 1))
     lifespan = _sample_lifespan_conditioned_on_age(age, lifespan_mean, lifespan_std, rng)
@@ -74,6 +76,7 @@ def create_random_agent(
         traits=rng.normal(trait_mean, trait_std, size=trait_count).astype(np.float64),
         preference_weights=random_preference_weights(trait_count, rng, preference_alpha),
         selectivity=selectivity,
+        region_id=region_id,
     )
 
 
@@ -112,6 +115,9 @@ def create_child(
     location_midpoint = 0.5 * parent_a.location + 0.5 * parent_b.location
     location_noise = rng.normal(0.0, location_noise_std, size=2)
     lifespan = max(1, int(round(rng.normal(lifespan_mean, lifespan_std))))
+    region_id = parent_a.region_id
+    if parent_a.region_id != parent_b.region_id:
+        region_id = parent_a.region_id if rng.random() < 0.5 else parent_b.region_id
 
     return Agent(
         id=child_id,
@@ -121,4 +127,5 @@ def create_child(
         traits=(midpoint + mutation).astype(np.float64),
         preference_weights=random_preference_weights(trait_count, rng, preference_alpha),
         selectivity=float(np.clip(np.mean([parent_a.selectivity, parent_b.selectivity]), 0.01, 1.0)),
+        region_id=region_id,
     )

@@ -35,6 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--location-cluster-count", type=int, default=None)
     run_parser.add_argument("--location-cluster-std", type=float, default=None)
     run_parser.add_argument(
+        "--cross-region-pairing",
+        choices=["allow", "block"],
+        default=None,
+        help="Whether agents can form pairs across clustered regions.",
+    )
+    run_parser.add_argument(
         "--radius-schedule",
         choices=["fixed", "linear", "sigmoid", "shock", "global"],
         default=None,
@@ -155,6 +161,7 @@ def run_command(args: argparse.Namespace) -> None:
         location_model=args.location_model,
         location_cluster_count=args.location_cluster_count,
         location_cluster_std=args.location_cluster_std,
+        allow_cross_region_pairing=_normalize_cross_region_pairing(args.cross_region_pairing),
         radius_schedule=args.radius_schedule,
         initial_radius=args.initial_radius,
         max_radius=args.max_radius,
@@ -210,6 +217,12 @@ def _normalize_carrying_capacity(value: int | None) -> int | None:
     if value <= 0:
         return 0
     return value
+
+
+def _normalize_cross_region_pairing(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    return value == "allow"
 
 
 def main(argv: list[str] | None = None) -> None:

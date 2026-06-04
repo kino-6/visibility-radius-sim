@@ -72,6 +72,7 @@ class Simulation:
                     preference_alpha=self.config.preference_alpha,
                     world_size=self.config.world_size,
                 )
+                child.region_id = self._region_for_location(child.location)
                 children.append(child)
                 offspring_counts[parent_a.id] += 1
                 offspring_counts[parent_b.id] += 1
@@ -120,6 +121,7 @@ class Simulation:
         agents: list[Agent] = []
         for _ in range(self.config.initial_population):
             age = self._sample_initial_age()
+            location, region_id = self._sample_initial_location_and_region()
             agents.append(
                 create_random_agent(
                     agent_id=self._next_id(),
@@ -135,7 +137,8 @@ class Simulation:
                     preference_alpha=self.config.preference_alpha,
                     selectivity_mean=self.config.selectivity_mean,
                     selectivity_std=self.config.selectivity_std,
-                    location=self._sample_initial_location(),
+                    location=location,
+                    region_id=region_id,
                 )
             )
         return agents
@@ -161,14 +164,21 @@ class Simulation:
         count = max(1, self.config.location_cluster_count)
         return self.rng.uniform(0.0, self.config.world_size, size=(count, 2)).astype(np.float64)
 
-    def _sample_initial_location(self) -> np.ndarray | None:
+    def _sample_initial_location_and_region(self) -> tuple[np.ndarray | None, int | None]:
         if self.config.location_model == "uniform":
-            return None
+            return None, None
         if self.config.location_model != "clustered":
             raise ValueError(f"Unknown location model: {self.config.location_model}")
-        center = self.location_cluster_centers[int(self.rng.integers(0, len(self.location_cluster_centers)))]
+        region_id = int(self.rng.integers(0, len(self.location_cluster_centers)))
+        center = self.location_cluster_centers[region_id]
         location = center + self.rng.normal(0.0, self.config.location_cluster_std, size=2)
-        return np.clip(location, 0.0, self.config.world_size).astype(np.float64)
+        return np.clip(location, 0.0, self.config.world_size).astype(np.float64), region_id
+
+    def _region_for_location(self, location: np.ndarray) -> int | None:
+        if self.config.location_model != "clustered" or self.location_cluster_centers.size == 0:
+            return None
+        distances = np.linalg.norm(self.location_cluster_centers - location, axis=1)
+        return int(np.argmin(distances))
 
     def _next_id(self) -> int:
         agent_id = self.next_agent_id
@@ -210,6 +220,15 @@ class Simulation:
             available_indexes.remove(index)
             agent = eligible[index]
             candidate_indexes = np.asarray(sorted(available_indexes), dtype=int)
+            if not self.config.allow_cross_region_pairing:
+                candidate_indexes = np.asarray(
+                    [
+                        candidate_index
+                        for candidate_index in candidate_indexes
+                        if self._regions_compatible(agent, eligible[int(candidate_index)])
+                    ],
+                    dtype=int,
+                )
             if candidate_indexes.size == 0:
                 break
             distances = np.linalg.norm(locations[candidate_indexes] - agent.location, axis=1)
@@ -296,20 +315,24 @@ class Simulation:
                 "mean_actionable_candidate_count": 0.0,
                 "action_coverage_rate": 0.0,
                 "visibility_action_gap": 0.0,
-            "mean_selected_actionable_share": 0.0,
-            "mean_selection_quota": 0.0,
-            "mean_selection_acceptance_share": 0.0,
-            "mean_phantom_candidate_count": 0.0,
-            "mean_sampled_phantom_candidate_count": 0.0,
-            "mean_selected_phantom_count": 0.0,
-            "mean_phantom_selection_share": 0.0,
-            "visibility_coverage_rate": 0.0,
-            "selection_worker_count": 1.0,
-        }
+                "mean_selected_actionable_share": 0.0,
+                "mean_selection_quota": 0.0,
+                "mean_selection_acceptance_share": 0.0,
+                "mean_phantom_candidate_count": 0.0,
+                "mean_sampled_phantom_candidate_count": 0.0,
+                "mean_selected_phantom_count": 0.0,
+                "mean_phantom_selection_share": 0.0,
+                "visibility_coverage_rate": 0.0,
+                "selection_worker_count": 1.0,
+            }
 
         locations = np.asarray([agent.location for agent in eligible])
         traits = np.asarray([agent.traits for agent in eligible])
         ids = np.asarray([agent.id for agent in eligible])
+        regions = np.asarray(
+            [-1 if agent.region_id is None else int(agent.region_id) for agent in eligible],
+            dtype=int,
+        )
         worker_count = resolve_worker_count(self.config, len(eligible))
 
         if worker_count == 1:
@@ -320,6 +343,7 @@ class Simulation:
                     locations,
                     traits,
                     ids,
+                    regions,
                     radius,
                     action_radius,
                     candidate_pool_multiplier,
@@ -336,6 +360,7 @@ class Simulation:
                             locations,
                             traits,
                             ids,
+                            regions,
                             radius,
                             action_radius,
                             candidate_pool_multiplier,
@@ -412,6 +437,7 @@ class Simulation:
         locations: np.ndarray,
         traits: np.ndarray,
         ids: np.ndarray,
+        regions: np.ndarray,
         radius: float,
         action_radius: float,
         candidate_pool_multiplier: float,
@@ -419,8 +445,11 @@ class Simulation:
         distances = np.linalg.norm(locations - agent.location, axis=1)
         candidate_indexes = np.where((distances <= radius) & (np.arange(len(locations)) != index))[0]
         actionable_visibility_radius = min(radius, action_radius)
+        region_compatible = self._region_compatibility_mask(index, regions)
         actionable_indexes = np.where(
-            (distances <= actionable_visibility_radius) & (np.arange(len(locations)) != index)
+            (distances <= actionable_visibility_radius)
+            & (np.arange(len(locations)) != index)
+            & region_compatible
         )[0]
         visible_count = int(candidate_indexes.size)
         actionable_count = int(actionable_indexes.size)
@@ -447,6 +476,7 @@ class Simulation:
 
         keep_count = self._selection_quota(agent, int(competition_scores.size))
         reserved_real_indexes = self._reserved_actionable_candidate_indexes(
+            agent=agent,
             real_scores=real_scores,
             candidate_indexes=candidate_indexes,
             actionable_indexes=actionable_indexes,
@@ -493,12 +523,13 @@ class Simulation:
     def _reserved_actionable_candidate_indexes(
         self,
         *,
+        agent: Agent,
         real_scores: np.ndarray,
         candidate_indexes: np.ndarray,
         actionable_indexes: np.ndarray,
         keep_count: int,
     ) -> list[int]:
-        reserve_fraction = float(np.clip(self.config.actionable_selection_reserve_fraction, 0.0, 1.0))
+        reserve_fraction = self._actionable_reserve_fraction_for_agent(agent)
         reserve_count = min(keep_count, int(np.ceil(keep_count * reserve_fraction)))
         if reserve_count <= 0 or actionable_indexes.size == 0:
             return []
@@ -516,6 +547,17 @@ class Simulation:
         actionable_scores = real_scores[actionable_real_positions]
         top_positions = np.argsort(actionable_scores)[-reserve_count:]
         return [int(actionable_real_positions[position]) for position in top_positions]
+
+    def _actionable_reserve_fraction_for_agent(self, agent: Agent | None) -> float:
+        if (
+            agent is not None
+            and agent.region_id is not None
+            and self.config.regional_actionable_reserve_fractions is not None
+        ):
+            fractions = self.config.regional_actionable_reserve_fractions
+            if 0 <= agent.region_id < len(fractions):
+                return float(np.clip(fractions[agent.region_id], 0.0, 1.0))
+        return float(np.clip(self.config.actionable_selection_reserve_fraction, 0.0, 1.0))
 
     def _phantom_candidate_count(self, visible_count: int, candidate_pool_multiplier: float) -> int:
         if self.config.phantom_candidate_mode == "none" or visible_count <= 0:
@@ -574,6 +616,9 @@ class Simulation:
                     continue
                 if agent.id in selections.get(candidate_id, set()):
                     candidate = by_id[candidate_id]
+                    if not self._regions_compatible(agent, candidate):
+                        blocked_mutual_pair_count += 1
+                        continue
                     if np.linalg.norm(agent.location - candidate.location) > action_radius:
                         blocked_mutual_pair_count += 1
                         continue
@@ -591,6 +636,17 @@ class Simulation:
             pairs.append((agent, candidate))
 
         return pairs, blocked_mutual_pair_count
+
+    def _region_compatibility_mask(self, index: int, regions: np.ndarray) -> np.ndarray:
+        if self.config.allow_cross_region_pairing:
+            return np.ones(len(regions), dtype=bool)
+        own_region = int(regions[index])
+        return regions == own_region
+
+    def _regions_compatible(self, agent: Agent, candidate: Agent) -> bool:
+        if self.config.allow_cross_region_pairing:
+            return True
+        return agent.region_id == candidate.region_id
 
     def _draw_child_count(self, effective_birth_probability: float) -> int:
         if self.rng.random() > effective_birth_probability:

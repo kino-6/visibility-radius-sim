@@ -1,0 +1,9 @@
+case,culture,start_population,peak_population,final_population,final_ratio,final_share,min_population,extinct_year
+allow,No reserve regions,630,678,3,0.005,0.002,3,
+allow,Weak reserve regions,648,715,589,0.909,0.307,478,
+allow,Balanced reserve regions,630,668,647,1.027,0.337,520,
+allow,Strong reserve regions,637,720,680,1.068,0.354,434,
+block,No reserve regions,633,664,17,0.027,0.009,11,
+block,Weak reserve regions,648,759,659,1.017,0.335,586,
+block,Balanced reserve regions,626,723,723,1.155,0.367,565,
+block,Strong reserve regions,639,700,571,0.894,0.29,530,

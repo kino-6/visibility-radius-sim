@@ -31,6 +31,7 @@ class SimulationConfig:
     location_model: LocationModel = "uniform"
     location_cluster_count: int = 6
     location_cluster_std: float = 0.06
+    allow_cross_region_pairing: bool = True
     initial_radius: float = 0.18
     max_radius: float = float(np.sqrt(2.0))
     action_radius: float | None = None
@@ -53,6 +54,7 @@ class SimulationConfig:
     phantom_candidate_mode: PhantomCandidateMode = "none"
     phantom_candidate_sample_cap: int = 512
     actionable_selection_reserve_fraction: float = 0.0
+    regional_actionable_reserve_fractions: tuple[float, ...] | None = None
     trait_mean: float = 0.0
     trait_std: float = 1.0
     preference_alpha: float = 2.0
