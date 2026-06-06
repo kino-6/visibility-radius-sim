@@ -406,6 +406,28 @@ For individuals, that means sequencing virtual visibility after real-world conta
 
 If this mechanism generalizes, then a culture adapted to the virtual world is not one that rejects the virtual world. It is one that prevents the virtual world from breaking the bridge between desire, attention, and real coordination.
 
+## Appendix Follow-Ups
+
+After this working paper draft, seven follow-up experiments A-G were added.
+Their outputs are bundled under `paper/appendix_followups/`.
+
+The main updates are:
+
+- Radius expansion alone is not the primary collapse mechanism; collapse is strongest when the actionability gap and phantom comparison interact.
+- SNS-like pressure is better represented as perceived candidate-pool multiplier than as spatial distance alone.
+- Top-k attention is fragile, but percentile selection alone is not enough to rescue viability.
+- Expanding action radius alone does not defeat extreme phantom competition.
+- Protected actionable-slot thresholds remain visible across `top_k=8,16,32,64`.
+- This version does not yet show an overconstraint penalty for very strong reserve culture.
+- Region-level institutional learning can substantially mitigate collapse if it adapts early and strongly enough.
+
+These follow-ups sharpen the paper's claim from "radius expansion is bad" to:
+
+```text
+non-actionable comparison is dangerous when it occupies bounded attention,
+and viability depends on protected actionable slots or institutional learning.
+```
+
 ## Reproducibility Notes
 
 Primary outputs used:
@@ -416,6 +438,7 @@ Primary outputs used:
 - `data/reserve_threshold_slots_multiseed_summary.csv`
 - `data/behavioral_action_interventions_summary.csv`
 - `data/behavioral_action_interventions_seed42_summary.csv`
+- `appendix_followups/data/appendix_followups_summary.csv`
 
 Figures are bundled under `figures/`.
 

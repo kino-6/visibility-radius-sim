@@ -83,6 +83,9 @@ The core model now has:
 - `outputs/reserve_threshold/reserve_threshold_report.md`: short threshold report.
 - `outputs/factor_analysis/factor_analysis.md`: earlier ablation notes.
 - `outputs/behavioral_interventions/behavioral_action_interventions.png`: behavior intervention comparison.
+- `docs/appendix_followups_plan.md`: plan for follow-up robustness checks A-G.
+- `docs/appendix_followups_results.md`: results report for follow-up robustness checks A-G.
+- `outputs/appendix_followups/appendix_followups_overview.png`: visual overview of follow-up checks.
 
 ## Modeling Caveats
 

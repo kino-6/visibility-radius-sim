@@ -7,6 +7,9 @@ This directory is a self-contained paper bundle for the visibility-radius simula
 - `visibility_radius_working_paper_ja.md`: Japanese working paper with embedded figures.
 - `visibility_radius_working_paper.md`: English working paper with embedded figures.
 - `drafts/`: older text-only drafts kept for comparison; use the root-level papers above as canonical versions.
+- `appendix_followups/`: follow-up appendix figures, summaries, and report for robustness checks A-G.
+  - `appendix_followups_report.md`: English appendix report.
+  - `appendix_followups_report_ja.md`: Japanese appendix report with term notes.
 
 ## Figures
 
@@ -19,6 +22,7 @@ Figures are stored under `figures/` and linked with relative paths from the pape
 - `regional_culture_crossing_comparison.png`: cross-region pairing comparison.
 - `regional_culture_trajectories_by_culture.png`: culture-by-culture regional trajectories.
 - `behavioral_action_interventions.png`: behavioral action intervention comparison.
+- `appendix_followups/figures/`: figures for follow-up robustness checks A-G.
 
 ## Data
 
@@ -30,6 +34,7 @@ Summary CSV files used by the paper are stored under `data/`.
 - `reserve_threshold_slots_multiseed_summary.csv`
 - `behavioral_action_interventions_summary.csv`
 - `behavioral_action_interventions_seed42_summary.csv`
+- `appendix_followups/data/`: summary CSV files for follow-up robustness checks A-G.
 
 ## Notes
 
@@ -38,6 +43,7 @@ Supporting analysis notes are stored under `notes/`.
 - `behavioral_action_interventions_report.md`: action-level intervention report.
 - `reserve_threshold_report.md`: protected-slot threshold report.
 - `factor_analysis.md`: earlier extinction-driver ablation notes.
+- `appendix_followups_report.md`: short copy of the follow-up robustness report.
 
 ## Note
 

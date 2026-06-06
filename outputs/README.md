@@ -14,6 +14,7 @@ This directory contains generated simulation artifacts grouped by scenario famil
 - `civilizational_adaptation/`: long-run fixed-culture scenarios.
 - `regional_culture/`: region boundary and culture-share scenarios.
 - `behavioral_interventions/`: action-level intervention scenarios.
+- `appendix_followups/`: robustness checks A-G for the paper appendix.
 
 ## Paper Artifacts
 
