@@ -56,10 +56,12 @@ class Simulation:
         reproductive_pairs = self._active_reproductive_pairs()
         offspring_counts: dict[int, int] = defaultdict(int)
         children: list[Agent] = []
-        effective_birth_probability = self._effective_birth_probability()
+        effective_birth_probability = self._effective_birth_probability(year)
 
         for parent_a, parent_b in reproductive_pairs:
-            child_count = self._draw_child_count(effective_birth_probability)
+            child_count = self._draw_child_count(
+                self._pair_birth_probability(parent_a, parent_b, effective_birth_probability)
+            )
             for _ in range(child_count):
                 child = create_child(
                     child_id=self._next_id(),
@@ -73,14 +75,16 @@ class Simulation:
                     world_size=self.config.world_size,
                 )
                 child.region_id = self._region_for_location(child.location)
+                child.aspiration_quantile = self._child_aspiration_quantile(child.gender, parent_a, parent_b)
                 children.append(child)
                 offspring_counts[parent_a.id] += 1
                 offspring_counts[parent_b.id] += 1
 
         self.agents.extend(children)
-        matched_agent_count = len({agent.id for pair in reproductive_pairs for agent in pair})
+        matched_agent_ids = {agent.id for pair in reproductive_pairs for agent in pair}
+        matched_agent_count = len(matched_agent_ids)
 
-        return yearly_metrics(
+        row = yearly_metrics(
             year=year,
             calendar_year=self.config.start_calendar_year + year - 1,
             agents=self.agents,
@@ -116,12 +120,16 @@ class Simulation:
             visibility_radius=visibility_radius,
             precision=self.config.metrics_precision,
         )
+        row.update(self._gender_metrics(eligible, matched_agent_ids))
+        return row
 
     def _create_initial_population(self) -> list[Agent]:
         agents: list[Agent] = []
         for _ in range(self.config.initial_population):
             age = self._sample_initial_age()
             location, region_id = self._sample_initial_location_and_region()
+            gender = self._sample_initial_gender()
+            aspiration_quantile = self._sample_initial_aspiration_quantile(gender)
             agents.append(
                 create_random_agent(
                     agent_id=self._next_id(),
@@ -139,9 +147,39 @@ class Simulation:
                     selectivity_std=self.config.selectivity_std,
                     location=location,
                     region_id=region_id,
+                    gender=gender,
+                    aspiration_quantile=aspiration_quantile,
                 )
             )
         return agents
+
+    def _sample_initial_gender(self) -> str | None:
+        if self.config.gender_mode == "none":
+            return None
+        if self.config.gender_mode == "binary-balanced":
+            return "A" if self.next_agent_id % 2 == 0 else "B"
+        raise ValueError(f"Unknown gender mode: {self.config.gender_mode}")
+
+    def _sample_initial_aspiration_quantile(self, gender: str | None) -> float | None:
+        if not self._gender_is_aspirational(gender):
+            return None
+
+        values = self.config.aspirational_min_score_quantile_distribution
+        if values is None or len(values) == 0:
+            return float(np.clip(self.config.aspirational_min_score_quantile, 0.0, 1.0))
+
+        probabilities: np.ndarray | None = None
+        weights = self.config.aspirational_min_score_quantile_weights
+        if weights is not None:
+            if len(weights) != len(values):
+                raise ValueError("aspirational_min_score_quantile_weights must match distribution length")
+            weights_array = np.asarray(weights, dtype=float)
+            if np.any(weights_array < 0.0) or float(weights_array.sum()) <= 0.0:
+                raise ValueError("aspirational_min_score_quantile_weights must be non-negative and non-zero")
+            probabilities = weights_array / float(weights_array.sum())
+
+        index = int(self.rng.choice(len(values), p=probabilities))
+        return float(np.clip(values[index], 0.0, 1.0))
 
     def _sample_initial_age(self) -> int:
         if self.config.initial_age_distribution == "uniform":
@@ -220,6 +258,14 @@ class Simulation:
             available_indexes.remove(index)
             agent = eligible[index]
             candidate_indexes = np.asarray(sorted(available_indexes), dtype=int)
+            candidate_indexes = np.asarray(
+                [
+                    candidate_index
+                    for candidate_index in candidate_indexes
+                    if self._genders_compatible(agent, eligible[int(candidate_index)])
+                ],
+                dtype=int,
+            )
             if not self.config.allow_cross_region_pairing:
                 candidate_indexes = np.asarray(
                     [
@@ -298,6 +344,31 @@ class Simulation:
                 pairs.append((agent_a, agent_b))
         return pairs
 
+    def _gender_metrics(self, eligible: list[Agent], matched_agent_ids: set[int]) -> dict[str, float | int]:
+        if self.config.gender_mode == "none":
+            return {}
+
+        living_a = [agent for agent in self.agents if agent.alive and agent.gender == "A"]
+        living_b = [agent for agent in self.agents if agent.alive and agent.gender == "B"]
+        eligible_a = [agent for agent in eligible if agent.gender == "A"]
+        eligible_b = [agent for agent in eligible if agent.gender == "B"]
+        matched_a = sum(1 for agent in eligible_a if agent.id in matched_agent_ids)
+        matched_b = sum(1 for agent in eligible_b if agent.id in matched_agent_ids)
+        return {
+            "population_gender_a": len(living_a),
+            "population_gender_b": len(living_b),
+            "eligible_gender_a": len(eligible_a),
+            "eligible_gender_b": len(eligible_b),
+            "unmatched_rate_gender_a": self._unmatched_rate_for_group(len(eligible_a), matched_a),
+            "unmatched_rate_gender_b": self._unmatched_rate_for_group(len(eligible_b), matched_b),
+        }
+
+    @staticmethod
+    def _unmatched_rate_for_group(eligible_count: int, matched_count: int) -> float:
+        if eligible_count <= 0:
+            return 0.0
+        return float(1.0 - matched_count / eligible_count)
+
     def _select_candidates(
         self,
         eligible: list[Agent],
@@ -333,6 +404,7 @@ class Simulation:
             [-1 if agent.region_id is None else int(agent.region_id) for agent in eligible],
             dtype=int,
         )
+        genders = np.asarray(["" if agent.gender is None else agent.gender for agent in eligible], dtype=object)
         worker_count = resolve_worker_count(self.config, len(eligible))
 
         if worker_count == 1:
@@ -344,6 +416,7 @@ class Simulation:
                     traits,
                     ids,
                     regions,
+                    genders,
                     radius,
                     action_radius,
                     candidate_pool_multiplier,
@@ -361,6 +434,7 @@ class Simulation:
                             traits,
                             ids,
                             regions,
+                            genders,
                             radius,
                             action_radius,
                             candidate_pool_multiplier,
@@ -438,6 +512,7 @@ class Simulation:
         traits: np.ndarray,
         ids: np.ndarray,
         regions: np.ndarray,
+        genders: np.ndarray,
         radius: float,
         action_radius: float,
         candidate_pool_multiplier: float,
@@ -451,6 +526,23 @@ class Simulation:
             & (np.arange(len(locations)) != index)
             & region_compatible
         )[0]
+        if self.config.gender_mode != "none":
+            candidate_indexes = np.asarray(
+                [
+                    candidate_index
+                    for candidate_index in candidate_indexes
+                    if self._gender_values_compatible(agent.gender, str(genders[candidate_index]) or None)
+                ],
+                dtype=int,
+            )
+            actionable_indexes = np.asarray(
+                [
+                    actionable_index
+                    for actionable_index in actionable_indexes
+                    if self._gender_values_compatible(agent.gender, str(genders[actionable_index]) or None)
+                ],
+                dtype=int,
+            )
         visible_count = int(candidate_indexes.size)
         actionable_count = int(actionable_indexes.size)
         phantom_count = self._phantom_candidate_count(visible_count, candidate_pool_multiplier)
@@ -475,12 +567,14 @@ class Simulation:
             )
 
         keep_count = self._selection_quota(agent, int(competition_scores.size))
+        minimum_score = self._minimum_selection_score(agent, competition_scores)
         reserved_real_indexes = self._reserved_actionable_candidate_indexes(
             agent=agent,
             real_scores=real_scores,
             candidate_indexes=candidate_indexes,
             actionable_indexes=actionable_indexes,
             keep_count=keep_count,
+            minimum_score=minimum_score,
         )
         reserved_real_index_set = set(reserved_real_indexes)
         fill_count = keep_count - len(reserved_real_indexes)
@@ -491,7 +585,8 @@ class Simulation:
             ],
             dtype=bool,
         )
-        fill_competition_indexes = np.where(selectable_mask)[0]
+        score_mask = competition_scores >= minimum_score
+        fill_competition_indexes = np.where(selectable_mask & score_mask)[0]
         if fill_count > 0 and fill_competition_indexes.size > 0:
             fill_count = min(fill_count, int(fill_competition_indexes.size))
             fill_scores = competition_scores[fill_competition_indexes]
@@ -528,6 +623,7 @@ class Simulation:
         candidate_indexes: np.ndarray,
         actionable_indexes: np.ndarray,
         keep_count: int,
+        minimum_score: float,
     ) -> list[int]:
         reserve_fraction = self._actionable_reserve_fraction_for_agent(agent)
         reserve_count = min(keep_count, int(np.ceil(keep_count * reserve_fraction)))
@@ -538,7 +634,7 @@ class Simulation:
         actionable_real_positions = [
             position
             for position, candidate_index in enumerate(candidate_indexes)
-            if int(candidate_index) in actionable_index_set
+            if int(candidate_index) in actionable_index_set and real_scores[position] >= minimum_score
         ]
         if not actionable_real_positions:
             return []
@@ -595,10 +691,63 @@ class Simulation:
         if visible_count <= 0:
             return 0
         if self.config.selection_mode == "top-k":
-            return min(visible_count, max(1, self.config.top_k))
+            return min(visible_count, self._effective_top_k(agent))
         if self.config.selection_mode == "percentile":
-            return max(1, int(np.ceil(visible_count * agent.selectivity)))
+            return max(1, int(np.ceil(visible_count * self._effective_selectivity(agent))))
         raise ValueError(f"Unknown selection mode: {self.config.selection_mode}")
+
+    def _effective_top_k(self, agent: Agent) -> int:
+        top_k = max(1, self.config.top_k)
+        if self._is_aspirational_agent(agent):
+            top_k = max(1, int(np.floor(top_k * self.config.aspirational_top_k_multiplier)))
+        return top_k
+
+    def _effective_selectivity(self, agent: Agent) -> float:
+        selectivity = agent.selectivity
+        if self._is_aspirational_agent(agent):
+            selectivity *= self.config.aspirational_selectivity_multiplier
+        return float(np.clip(selectivity, 0.01, 1.0))
+
+    def _minimum_selection_score(self, agent: Agent, competition_scores: np.ndarray) -> float:
+        if competition_scores.size == 0 or not self._is_aspirational_agent(agent):
+            return float("-inf")
+        quantile = self._aspiration_quantile_for_agent(agent)
+        if quantile <= 0.0:
+            return float("-inf")
+        return float(np.quantile(competition_scores, quantile))
+
+    def _aspiration_quantile_for_agent(self, agent: Agent) -> float:
+        if agent.aspiration_quantile is not None:
+            return float(np.clip(agent.aspiration_quantile, 0.0, 1.0))
+        return float(np.clip(self.config.aspirational_min_score_quantile, 0.0, 1.0))
+
+    def _child_aspiration_quantile(
+        self,
+        child_gender: str | None,
+        parent_a: Agent,
+        parent_b: Agent,
+    ) -> float | None:
+        if not self._gender_is_aspirational(child_gender):
+            return None
+        inherited = [
+            parent.aspiration_quantile
+            for parent in (parent_a, parent_b)
+            if parent.aspiration_quantile is not None
+        ]
+        if not inherited:
+            return self._sample_initial_aspiration_quantile(child_gender)
+        quantile = float(np.mean(inherited))
+        quantile += float(self.rng.normal(0.0, self.config.aspirational_quantile_mutation_std))
+        return float(np.clip(quantile, 0.0, 1.0))
+
+    def _is_aspirational_agent(self, agent: Agent) -> bool:
+        return self._gender_is_aspirational(agent.gender)
+
+    def _gender_is_aspirational(self, gender: str | None) -> bool:
+        target = self.config.aspirational_gender
+        if target == "none" or gender is None:
+            return False
+        return target == "both" or gender == target
 
     def _form_pairs(
         self,
@@ -616,6 +765,9 @@ class Simulation:
                     continue
                 if agent.id in selections.get(candidate_id, set()):
                     candidate = by_id[candidate_id]
+                    if not self._genders_compatible(agent, candidate):
+                        blocked_mutual_pair_count += 1
+                        continue
                     if not self._regions_compatible(agent, candidate):
                         blocked_mutual_pair_count += 1
                         continue
@@ -648,6 +800,16 @@ class Simulation:
             return True
         return agent.region_id == candidate.region_id
 
+    def _genders_compatible(self, agent: Agent, candidate: Agent) -> bool:
+        return self._gender_values_compatible(agent.gender, candidate.gender)
+
+    def _gender_values_compatible(self, gender: str | None, candidate_gender: str | None) -> bool:
+        if self.config.gender_mode == "none":
+            return True
+        if self.config.gender_mode == "binary-balanced":
+            return gender is not None and candidate_gender is not None and gender != candidate_gender
+        raise ValueError(f"Unknown gender mode: {self.config.gender_mode}")
+
     def _draw_child_count(self, effective_birth_probability: float) -> int:
         if self.rng.random() > effective_birth_probability:
             return 0
@@ -660,6 +822,40 @@ class Simulation:
             child_count += 1
         return child_count
 
+    def _pair_birth_probability(
+        self,
+        parent_a: Agent,
+        parent_b: Agent,
+        base_birth_probability: float,
+    ) -> float:
+        if self.config.fertility_age_profile == "flat":
+            return base_birth_probability
+        if self.config.fertility_age_profile == "japan-stylized":
+            age_weight = float(
+                np.sqrt(
+                    self._fertility_age_weight(parent_a.age)
+                    * self._fertility_age_weight(parent_b.age)
+                )
+            )
+            return float(np.clip(base_birth_probability * age_weight, 0.0, 1.0))
+        raise ValueError(f"Unknown fertility age profile: {self.config.fertility_age_profile}")
+
+    @staticmethod
+    def _fertility_age_weight(age: int) -> float:
+        if age < 20:
+            return 0.05
+        if age < 25:
+            return 0.35
+        if age < 30:
+            return 0.85
+        if age < 35:
+            return 1.0
+        if age < 40:
+            return 0.65
+        if age < 45:
+            return 0.20
+        return 0.03
+
     def _theoretical_area_coverage(self, radius: float) -> float:
         world_area = self.config.world_size**2
         if world_area <= 0.0:
@@ -667,12 +863,36 @@ class Simulation:
         circle_area = np.pi * radius**2
         return float(np.clip(circle_area / world_area, 0.0, 1.0))
 
-    def _effective_birth_probability(self) -> float:
-        if self.config.carrying_capacity is None or self.config.carrying_capacity <= 0:
+    def _scheduled_birth_probability(self, year: int) -> float:
+        if self.config.birth_probability_schedule == "fixed":
             return self.config.birth_probability
+        if self.config.birth_probability_schedule == "japan-tfr-stylized":
+            calendar_year = self.config.start_calendar_year + year - 1
+            anchors = np.asarray(
+                [
+                    (1980.0, 1.28),
+                    (1990.0, 1.12),
+                    (2000.0, 1.00),
+                    (2005.0, 0.93),
+                    (2010.0, 0.98),
+                    (2015.0, 0.94),
+                    (2020.0, 0.91),
+                    (2024.0, 0.80),
+                    (2070.0, 0.72),
+                ],
+                dtype=float,
+            )
+            multiplier = float(np.interp(calendar_year, anchors[:, 0], anchors[:, 1]))
+            return float(np.clip(self.config.birth_probability * multiplier, 0.0, 1.0))
+        raise ValueError(f"Unknown birth probability schedule: {self.config.birth_probability_schedule}")
+
+    def _effective_birth_probability(self, year: int) -> float:
+        scheduled_birth_probability = self._scheduled_birth_probability(year)
+        if self.config.carrying_capacity is None or self.config.carrying_capacity <= 0:
+            return scheduled_birth_probability
         living_population = sum(1 for agent in self.agents if agent.alive)
         capacity_factor = 1.0 - living_population / self.config.carrying_capacity
-        return float(np.clip(self.config.birth_probability * capacity_factor, 0.0, self.config.birth_probability))
+        return float(np.clip(scheduled_birth_probability * capacity_factor, 0.0, scheduled_birth_probability))
 
     def _action_radius(self) -> float:
         if self.config.action_radius is None:

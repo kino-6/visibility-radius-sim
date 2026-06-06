@@ -10,6 +10,9 @@ This directory is a self-contained paper bundle for the visibility-radius simula
 - `appendix_followups/`: follow-up appendix figures, summaries, and report for robustness checks A-G.
   - `appendix_followups_report.md`: English appendix report.
   - `appendix_followups_report_ja.md`: Japanese appendix report with term notes.
+- `appendices/`: paper appendices that document reproducibility conditions.
+  - `reproducibility_archive.md`: English archive of scripts, seeds, parameters, and output files.
+  - `reproducibility_archive_ja.md`: Japanese archive of scripts, seeds, parameters, and output files.
 
 ## Figures
 
@@ -23,6 +26,10 @@ Figures are stored under `figures/` and linked with relative paths from the pape
 - `regional_culture_trajectories_by_culture.png`: culture-by-culture regional trajectories.
 - `behavioral_action_interventions.png`: behavioral action intervention comparison.
 - `appendix_followups/figures/`: figures for follow-up robustness checks A-G.
+- `outputs/gendered_aspiration/gendered_aspiration_summary.png`: gendered aspirational selectivity follow-up figure, kept in outputs with notes under `notes/`.
+- `outputs/gendered_robustness/gendered_robustness_heatmap.png`: calibration robustness heatmap for gendered aspiration conditions.
+- `outputs/reality_grounded_calibration/profile_comparison.png`: reality-grounded calibration candidate comparison.
+- `outputs/reality_grounded_calibration/reality_overlay.png`: Japan reference population-index anchors overlaid with the selected simulation trajectories.
 
 ## Data
 
@@ -35,6 +42,9 @@ Summary CSV files used by the paper are stored under `data/`.
 - `behavioral_action_interventions_summary.csv`
 - `behavioral_action_interventions_seed42_summary.csv`
 - `appendix_followups/data/`: summary CSV files for follow-up robustness checks A-G.
+- `outputs/gendered_aspiration/`: generated CSV files for the gendered aspirational selectivity follow-up.
+- `outputs/gendered_robustness/`: generated CSV files for the gendered aspiration calibration robustness sweep.
+- `outputs/reality_grounded_calibration/`: generated CSV files for the Japan-grounded calibration search.
 
 ## Notes
 
@@ -44,6 +54,11 @@ Supporting analysis notes are stored under `notes/`.
 - `reserve_threshold_report.md`: protected-slot threshold report.
 - `factor_analysis.md`: earlier extinction-driver ablation notes.
 - `appendix_followups_report.md`: short copy of the follow-up robustness report.
+- `gendered_aspiration_report.md`: abstract A/B gender and aspirational selectivity follow-up.
+- `gendered_aspiration_report_ja.md`: Japanese note for the gendered aspirational selectivity follow-up.
+- `gendered_robustness_report.md`: calibration robustness sweep for gendered aspiration conditions.
+- `gendered_robustness_report_ja.md`: Japanese note for the gendered aspiration robustness sweep.
+- `reality_grounded_calibration_report_ja.md`: Japanese note for the Japan-grounded calibration search.
 
 ## Note
 

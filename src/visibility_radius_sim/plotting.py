@@ -442,6 +442,7 @@ def _write_parameter_panel(axis: plt.Axes, params: dict[str, Any], data: pd.Data
             "max_radius",
             "action_radius",
             "birth_probability",
+            "birth_probability_schedule",
             "carrying_capacity",
             "selection_mode",
             "top_k",

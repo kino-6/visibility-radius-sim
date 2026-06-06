@@ -473,3 +473,169 @@ def test_initial_pair_stock_lowers_unmatched_rate() -> None:
 
     assert paired_metrics["active_pair_count"].iloc[0] > 0
     assert paired_metrics["unmatched_rate"].iloc[0] < unpaired_metrics["unmatched_rate"].iloc[0]
+
+
+def test_binary_gender_mode_adds_gender_metrics() -> None:
+    config = SimulationConfig(
+        years=1,
+        initial_population=120,
+        seed=123,
+        gender_mode="binary-balanced",
+        radius_schedule="global",
+        action_radius=1.0,
+        selection_mode="top-k",
+        top_k=8,
+    )
+
+    metrics = Simulation(config).run()
+
+    assert metrics["population_gender_a"].iloc[0] > 0
+    assert metrics["population_gender_b"].iloc[0] > 0
+    assert metrics["population_gender_a"].iloc[0] + metrics["population_gender_b"].iloc[0] == metrics[
+        "population_size"
+    ].iloc[0]
+    assert "unmatched_rate_gender_a" in metrics.columns
+    assert "unmatched_rate_gender_b" in metrics.columns
+
+
+def test_aspirational_top_k_multiplier_reduces_selection_quota_when_used() -> None:
+    base_config = dict(
+        years=1,
+        initial_population=180,
+        seed=456,
+        gender_mode="binary-balanced",
+        radius_schedule="global",
+        action_radius=1.0,
+        selection_mode="top-k",
+        top_k=12,
+        worker_count=1,
+    )
+
+    symmetric = Simulation(SimulationConfig(**base_config)).run()
+    aspirational = Simulation(
+        SimulationConfig(
+            **base_config,
+            aspirational_gender="B",
+            aspirational_top_k_multiplier=0.25,
+        )
+    ).run()
+
+    assert aspirational["mean_selection_quota"].iloc[0] < symmetric["mean_selection_quota"].iloc[0]
+
+
+def test_aspirational_score_quantile_filters_without_reducing_quota() -> None:
+    base_config = dict(
+        years=1,
+        initial_population=220,
+        seed=654,
+        gender_mode="binary-balanced",
+        radius_schedule="global",
+        action_radius=0.08,
+        selection_mode="top-k",
+        top_k=12,
+        initial_candidate_pool_multiplier=80.0,
+        max_candidate_pool_multiplier=80.0,
+        phantom_candidate_mode="sampled",
+        phantom_candidate_sample_cap=256,
+        actionable_selection_reserve_fraction=0.5,
+        worker_count=1,
+    )
+
+    symmetric = Simulation(SimulationConfig(**base_config)).run()
+    aspirational = Simulation(
+        SimulationConfig(
+            **base_config,
+            aspirational_gender="B",
+            aspirational_min_score_quantile=0.95,
+        )
+    ).run()
+
+    assert aspirational["mean_selection_quota"].iloc[0] == symmetric["mean_selection_quota"].iloc[0]
+    assert aspirational["mean_selected_actionable_share"].iloc[0] < symmetric[
+        "mean_selected_actionable_share"
+    ].iloc[0]
+
+
+def test_aspirational_quantile_distribution_is_assigned_by_agent() -> None:
+    simulation = Simulation(
+        SimulationConfig(
+            years=1,
+            initial_population=80,
+            seed=987,
+            gender_mode="binary-balanced",
+            aspirational_gender="B",
+            aspirational_min_score_quantile_distribution=(0.55, 0.9),
+            aspirational_min_score_quantile_weights=(0.7, 0.3),
+        )
+    )
+
+    b_quantiles = {
+        agent.aspiration_quantile
+        for agent in simulation.agents
+        if agent.gender == "B"
+    }
+    a_quantiles = {
+        agent.aspiration_quantile
+        for agent in simulation.agents
+        if agent.gender == "A"
+    }
+
+    assert b_quantiles <= {0.55, 0.9}
+    assert b_quantiles
+    assert a_quantiles == {None}
+
+
+def test_reproductive_age_window_limits_eligibility() -> None:
+    simulation = Simulation(
+        SimulationConfig(
+            years=1,
+            initial_population=50,
+            seed=321,
+            initial_min_age=40,
+            initial_max_age=45,
+            reproductive_min_age=20,
+            reproductive_max_age=39,
+        )
+    )
+
+    assert simulation._eligible_agents() == []
+
+
+def test_japan_stylized_fertility_age_profile_weights_age() -> None:
+    young_peak = Simulation._fertility_age_weight(31)
+    early_twenties = Simulation._fertility_age_weight(22)
+    late_forties = Simulation._fertility_age_weight(47)
+
+    assert young_peak > early_twenties
+    assert early_twenties > late_forties
+
+
+def test_japan_tfr_stylized_birth_schedule_declines_after_1980() -> None:
+    simulation = Simulation(
+        SimulationConfig(
+            years=91,
+            start_calendar_year=1980,
+            birth_probability=0.2,
+            birth_probability_schedule="japan-tfr-stylized",
+        )
+    )
+
+    birth_1980 = simulation._scheduled_birth_probability(1)
+    birth_2000 = simulation._scheduled_birth_probability(21)
+    birth_2070 = simulation._scheduled_birth_probability(91)
+
+    assert birth_1980 > birth_2000
+    assert birth_2000 > birth_2070
+
+
+def test_japan_2070_scenario_uses_reality_grounded_defaults() -> None:
+    config = SimulationConfig.for_scenario("japan-2070")
+
+    assert config.years == 91
+    assert config.reproductive_min_age == 20
+    assert config.reproductive_max_age == 44
+    assert config.fertility_age_profile == "japan-stylized"
+    assert config.birth_probability == 0.22
+    assert config.birth_probability_schedule == "japan-tfr-stylized"
+    assert config.carrying_capacity == 6000
+    assert config.pair_duration_mean == 18.0

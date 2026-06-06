@@ -7,11 +7,15 @@ from typing import Any, Literal
 import numpy as np
 
 RadiusSchedule = Literal["fixed", "linear", "sigmoid", "shock", "global"]
-ScenarioName = Literal["baseline", "sns-2000s"]
+ScenarioName = Literal["baseline", "sns-2000s", "japan-2070"]
 SelectionMode = Literal["percentile", "top-k"]
 LocationModel = Literal["uniform", "clustered"]
 InitialAgeDistribution = Literal["uniform", "japan-1980-stylized"]
 PhantomCandidateMode = Literal["none", "sampled"]
+GenderMode = Literal["none", "binary-balanced"]
+AspirationalGender = Literal["none", "A", "B", "both"]
+FertilityAgeProfile = Literal["flat", "japan-stylized"]
+BirthProbabilitySchedule = Literal["fixed", "japan-tfr-stylized"]
 
 
 @dataclass(frozen=True)
@@ -55,13 +59,23 @@ class SimulationConfig:
     phantom_candidate_sample_cap: int = 512
     actionable_selection_reserve_fraction: float = 0.0
     regional_actionable_reserve_fractions: tuple[float, ...] | None = None
+    gender_mode: GenderMode = "none"
+    aspirational_gender: AspirationalGender = "none"
+    aspirational_top_k_multiplier: float = 1.0
+    aspirational_selectivity_multiplier: float = 1.0
+    aspirational_min_score_quantile: float = 0.0
+    aspirational_min_score_quantile_distribution: tuple[float, ...] | None = None
+    aspirational_min_score_quantile_weights: tuple[float, ...] | None = None
+    aspirational_quantile_mutation_std: float = 0.02
     trait_mean: float = 0.0
     trait_std: float = 1.0
     preference_alpha: float = 2.0
     mutation_std: float = 0.08
     birth_probability: float = 0.25
+    birth_probability_schedule: BirthProbabilitySchedule = "fixed"
     additional_child_probability: float = 0.05
     max_children_per_pair: int = 2
+    fertility_age_profile: FertilityAgeProfile = "flat"
     initial_pair_fraction: float = 0.0
     pair_duration_mean: float = 12.0
     pair_duration_std: float = 4.0
@@ -118,6 +132,48 @@ class SimulationConfig:
                         "Abstract rapid visibility expansion inspired by search, social networks, "
                         "and recommendation systems in the 2000s. Heuristically tuned so the "
                         "pre-expansion period is viable before the visibility shock is applied."
+                    ),
+                },
+            )
+        if scenario == "japan-2070":
+            return cls(
+                years=91,
+                start_calendar_year=1980,
+                initial_population=1200,
+                initial_age_distribution="japan-1980-stylized",
+                location_model="clustered",
+                location_cluster_count=12,
+                location_cluster_std=0.035,
+                initial_radius=0.02,
+                max_radius=float(np.sqrt(2.0)),
+                action_radius=0.12,
+                radius_schedule="shock",
+                visibility_expansion_mid_year=2007,
+                visibility_expansion_duration_years=7.0,
+                reproductive_min_age=20,
+                reproductive_max_age=44,
+                lifespan_mean=78.0,
+                fertility_age_profile="japan-stylized",
+                birth_probability=0.22,
+                birth_probability_schedule="japan-tfr-stylized",
+                carrying_capacity=6000,
+                selection_mode="top-k",
+                top_k=16,
+                selectivity_mean=0.18,
+                initial_pair_fraction=0.55,
+                pair_duration_mean=18.0,
+                pair_duration_std=8.0,
+                initial_candidate_pool_multiplier=1.0,
+                max_candidate_pool_multiplier=300.0,
+                phantom_candidate_mode="sampled",
+                phantom_candidate_sample_cap=512,
+                actionable_selection_reserve_fraction=0.25,
+                metadata={
+                    "scenario": "japan-2070",
+                    "interpretation": (
+                        "Reality-grounded toy calibration for a 1980-2070 Japan-like horizon. "
+                        "The symmetric condition is tuned against a population-index shape "
+                        "from 1980-2070 before adding aspiration profiles."
                     ),
                 },
             )

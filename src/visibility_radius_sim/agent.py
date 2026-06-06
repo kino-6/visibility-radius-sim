@@ -19,6 +19,8 @@ class Agent:
     preference_weights: FloatArray
     selectivity: float
     region_id: int | None = None
+    gender: str | None = None
+    aspiration_quantile: float | None = None
     alive: bool = True
 
     def age_one_year(self) -> bool:
@@ -60,6 +62,8 @@ def create_random_agent(
     selectivity_std: float,
     location: FloatArray | None = None,
     region_id: int | None = None,
+    gender: str | None = None,
+    aspiration_quantile: float | None = None,
 ) -> Agent:
     age = int(rng.integers(min_age, max_age + 1))
     lifespan = _sample_lifespan_conditioned_on_age(age, lifespan_mean, lifespan_std, rng)
@@ -77,6 +81,8 @@ def create_random_agent(
         preference_weights=random_preference_weights(trait_count, rng, preference_alpha),
         selectivity=selectivity,
         region_id=region_id,
+        gender=gender,
+        aspiration_quantile=aspiration_quantile,
     )
 
 
@@ -118,6 +124,9 @@ def create_child(
     region_id = parent_a.region_id
     if parent_a.region_id != parent_b.region_id:
         region_id = parent_a.region_id if rng.random() < 0.5 else parent_b.region_id
+    gender = None
+    if parent_a.gender is not None or parent_b.gender is not None:
+        gender = "A" if rng.random() < 0.5 else "B"
 
     return Agent(
         id=child_id,
@@ -128,4 +137,5 @@ def create_child(
         preference_weights=random_preference_weights(trait_count, rng, preference_alpha),
         selectivity=float(np.clip(np.mean([parent_a.selectivity, parent_b.selectivity]), 0.01, 1.0)),
         region_id=region_id,
+        gender=gender,
     )

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Paper Artifact Reproducibility"
+  short_description: "Reproducible paper artifact checks"
+  default_prompt: "Use $paper-artifact-reproducibility to review this computational paper for traceable claims, figures, seeds, scripts, and reproducibility gaps."
+
+policy:
+  allow_implicit_invocation: true

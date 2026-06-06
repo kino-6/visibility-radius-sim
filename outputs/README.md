@@ -15,6 +15,9 @@ This directory contains generated simulation artifacts grouped by scenario famil
 - `regional_culture/`: region boundary and culture-share scenarios.
 - `behavioral_interventions/`: action-level intervention scenarios.
 - `appendix_followups/`: robustness checks A-G for the paper appendix.
+- `gendered_aspiration/`: abstract A/B gender and one-sided aspirational selectivity follow-up.
+- `gendered_robustness/`: calibration robustness sweep for gendered aspiration conditions.
+- `reality_grounded_calibration/`: Japan-grounded calibration search for the 1980-2070-style baseline, including `reality_overlay.png` for comparing the simulation population index against public population anchors.
 
 ## Paper Artifacts
 

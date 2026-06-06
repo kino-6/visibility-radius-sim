@@ -430,6 +430,14 @@ and viability depends on protected actionable slots or institutional learning.
 
 ## Reproducibility Notes
 
+Detailed reproduction conditions are archived in:
+
+- `appendices/reproducibility_archive.md`
+- `appendices/reproducibility_archive_ja.md`
+
+Those appendices record scripts, seeds, major parameters, raw/summary output
+locations, and remaining reproducibility gaps.
+
 Primary outputs used:
 
 - `data/actionable_attention_comparison_summary.csv`

@@ -4,7 +4,7 @@ This repository is an abstract agent-based simulation for visibility radius, pha
 
 ## Current Research State
 
-The active exploratory branch is `analysis/extinction-drivers`.
+The main branch contains the current working-paper bundle and appendix outputs.
 
 The core model now has:
 
@@ -13,6 +13,11 @@ The core model now has:
 - `regional_actionable_reserve_fractions`: place-held culture values for clustered regions.
 - `allow_cross_region_pairing`: whether region boundaries block pair formation across clusters.
 - `Agent.region_id`: clustered locations can be treated as regions/countries.
+- optional abstract `Agent.gender`: A/B labels for mechanism-only gendered aspiration follow-ups.
+
+## Project Skills
+
+- `paper-artifact-reproducibility`: use when creating or reviewing working papers, appendices, reports, figure bundles, or simulation artifacts that need traceable claims, parameter/seed disclosure, figure-data links, reproducibility archives, and careful limitation wording.
 
 ## Main Findings So Far
 
@@ -86,6 +91,10 @@ The core model now has:
 - `docs/appendix_followups_plan.md`: plan for follow-up robustness checks A-G.
 - `docs/appendix_followups_results.md`: results report for follow-up robustness checks A-G.
 - `outputs/appendix_followups/appendix_followups_overview.png`: visual overview of follow-up checks.
+- `paper/appendices/reproducibility_archive_ja.md`: Japanese reproducibility archive with scripts, seeds, parameters, output paths, and known gaps.
+- `paper/appendices/reproducibility_archive.md`: English reproducibility archive.
+- `outputs/gendered_aspiration/gendered_aspiration_summary.png`: abstract A/B gendered aspirational selectivity follow-up.
+- `paper/notes/gendered_aspiration_report_ja.md`: Japanese note for the gendered aspiration follow-up.
 
 ## Modeling Caveats
 

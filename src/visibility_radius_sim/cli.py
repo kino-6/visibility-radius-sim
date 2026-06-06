@@ -19,7 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser("run", help="Run a simulation and write CSV metrics.")
     run_parser.add_argument(
         "--scenario",
-        choices=["baseline", "sns-2000s"],
+        choices=["baseline", "sns-2000s", "japan-2070"],
         default="baseline",
         help="Named scenario preset. CLI parameters override preset values.",
     )
