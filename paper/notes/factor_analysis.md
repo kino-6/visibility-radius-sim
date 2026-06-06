@@ -16,7 +16,7 @@ After the visibility shock, most selected top candidates are outside action rang
 
 ## Seed 42 Ablation
 
-Key outcomes from `outputs/factor_analysis_seed42.csv`:
+Key outcomes from `../../outputs/factor_analysis/factor_analysis_seed42.csv`:
 
 - Current SNS scenario: final population ratio `0.491`.
 - Fixed local visibility: final population ratio `0.834`.
@@ -29,7 +29,7 @@ This indicates that candidate multiplier is not yet causal in the model. The str
 
 ## Multi-Seed Average
 
-Key outcomes from `outputs/factor_analysis_multiseed_summary.csv`:
+Key outcomes from `../../outputs/factor_analysis/factor_analysis_multiseed_summary.csv`:
 
 - Current SNS scenario: mean final population ratio `0.554`.
 - Fixed local visibility: mean final population ratio `0.936`.
@@ -53,7 +53,7 @@ The current model says:
 
 The branch now implements sampled phantom candidates. In this mode, `candidate_pool_multiplier` creates non-pairable comparison candidates that can enter the top-k competition. Phantom candidates have sampled trait vectors and can consume selection slots, but they cannot form pairs.
 
-Key seed-42 comparison from `outputs/phantom_candidate_comparison_seed42.csv`:
+Key seed-42 comparison from `../../outputs/phantom_candidates/phantom_candidate_comparison_seed42.csv`:
 
 - Old behavior with `phantom_candidate_mode=none`: final population ratio `0.491`.
 - Default sampled phantom mode, cap `512`: final population ratio `0.415`.
@@ -66,7 +66,7 @@ In the default sampled phantom run, late-period `mean_phantom_selection_share` i
 
 The branch now includes `actionable_selection_reserve_fraction`, an intervention knob that reserves part of the top-k selection quota for real candidates inside action radius before phantom/global comparison candidates can consume the remaining slots.
 
-Seed-42 results from `outputs/extinction_avoidance_reserve_seed42.csv`:
+Seed-42 results from `../../outputs/extinction_avoidance/extinction_avoidance_reserve_seed42.csv`:
 
 - Current phantom scenario, no reserve: final population ratio `0.415`.
 - Reserve `0.25`: final population ratio `0.811`.
@@ -74,7 +74,7 @@ Seed-42 results from `outputs/extinction_avoidance_reserve_seed42.csv`:
 - Reserve `0.75`: final population ratio `0.941`.
 - Reserve `1.00`: final population ratio `0.959`.
 
-Five-seed averages from `outputs/extinction_avoidance_reserve_multiseed_summary.csv`:
+Five-seed averages from `../../outputs/extinction_avoidance/extinction_avoidance_reserve_multiseed_summary.csv`:
 
 - Current phantom scenario, no reserve: mean final ratio `0.471`.
 - Reserve `0.25`: mean final ratio `0.886`.

@@ -1,0 +1,6 @@
+scenario,start_population,peak_population,peak_year,final_year,final_population,final_ratio,min_ratio,late_unmatched_mean,late_births_per_eligible_mean,late_selected_actionable_mean,late_selected_phantom_mean
+No virtual filter,2547,2748,2005,2219,0,0.0,0.0,0.165,0.0,0.001,0.144
+Weak actionable culture,2547,2748,2005,2219,1773,0.696,0.68,0.273,0.0361,0.241,0.757
+Balanced actionable culture,2547,2750,2005,2219,2347,0.921,0.907,0.226,0.0357,0.41,0.589
+Strong actionable culture,2547,2750,2005,2219,2453,0.963,0.901,0.214,0.0362,0.443,0.556
+Local-only reference,2547,2738,2001,2219,900,0.353,0.353,0.411,0.0301,0.214,0.0

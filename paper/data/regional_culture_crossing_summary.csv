@@ -1,0 +1,3 @@
+case,start_population,peak_population,peak_year,final_population,final_ratio,late_unmatched_mean,late_births_per_eligible_mean,final_no_reserve_share,final_weak_reserve_share,final_balanced_reserve_share,final_strong_reserve_share
+allow,2545,2761,2005,1919,0.754,0.245,0.038,0.002,0.307,0.337,0.354
+block,2546,2748,2005,1970,0.774,0.242,0.0368,0.009,0.335,0.367,0.29

@@ -72,14 +72,17 @@ The core model now has:
 
 ## Important Outputs
 
-- `outputs/phantom_candidate_comparison_seed42.csv`: phantom vs no-phantom comparison.
-- `outputs/actionable_attention_comparison.png`: collapse vs actionable reserve comparison.
-- `outputs/civilizational_adaptation_longrun.png`: fixed-culture long-run comparison.
-- `outputs/regional_culture_crossing_comparison.png`: cross-region pairing allow vs block.
-- `outputs/regional_culture_trajectories_by_culture.png`: culture-by-culture trajectories.
-- `outputs/reserve_threshold_slots_multiseed.png`: protected slot threshold curve.
-- `outputs/reserve_threshold_report.md`: short threshold report.
-- `outputs/factor_analysis.md`: earlier ablation notes.
+- `paper/visibility_radius_working_paper_ja.md`: Japanese working paper with figures.
+- `paper/visibility_radius_working_paper.md`: English working paper with figures.
+- `outputs/phantom_candidates/phantom_candidate_comparison_seed42.csv`: phantom vs no-phantom comparison.
+- `outputs/actionable_attention/actionable_attention_comparison.png`: collapse vs actionable reserve comparison.
+- `outputs/civilizational_adaptation/civilizational_adaptation_longrun.png`: fixed-culture long-run comparison.
+- `outputs/regional_culture/regional_culture_crossing_comparison.png`: cross-region pairing allow vs block.
+- `outputs/regional_culture/regional_culture_trajectories_by_culture.png`: culture-by-culture trajectories.
+- `outputs/reserve_threshold/reserve_threshold_slots_multiseed.png`: protected slot threshold curve.
+- `outputs/reserve_threshold/reserve_threshold_report.md`: short threshold report.
+- `outputs/factor_analysis/factor_analysis.md`: earlier ablation notes.
+- `outputs/behavioral_interventions/behavioral_action_interventions.png`: behavior intervention comparison.
 
 ## Modeling Caveats
 

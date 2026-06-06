@@ -1,0 +1,20 @@
+# Outputs
+
+This directory contains generated simulation artifacts grouped by scenario family.
+
+## Directory Layout
+
+- `demo/`: small demo run artifacts.
+- `sns_2000s/`: baseline SNS-era visibility expansion runs.
+- `phantom_candidates/`: phantom-vs-no-phantom comparison.
+- `actionable_attention/`: actionable reserve comparison.
+- `extinction_avoidance/`: early extinction-driver and reserve avoidance runs.
+- `factor_analysis/`: factor ablation summaries and notes.
+- `reserve_threshold/`: actionable reserve threshold sweeps.
+- `civilizational_adaptation/`: long-run fixed-culture scenarios.
+- `regional_culture/`: region boundary and culture-share scenarios.
+- `behavioral_interventions/`: action-level intervention scenarios.
+
+## Paper Artifacts
+
+Paper-ready files live at the repository top level under `paper/`, not here.
