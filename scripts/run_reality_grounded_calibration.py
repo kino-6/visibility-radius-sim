@@ -10,6 +10,8 @@ import pandas as pd
 from visibility_radius_sim.config import SimulationConfig
 from visibility_radius_sim.simulation import Simulation
 
+from experiment_helpers import dataframe_to_markdown, japan_reference_frame, rmse_for_years
+
 
 OUTPUT_DIR = Path("outputs/reality_grounded_calibration")
 PAPER_NOTE_PATH = Path("paper/notes/reality_grounded_calibration_report_ja.md")
@@ -23,18 +25,6 @@ LATE_WINDOW = 20
 ANCHOR_YEARS = (1980, 1990, 2000, 2010, 2020, 2070)
 PRE_SHOCK_ANCHOR_YEARS = (1980, 1990, 2000)
 EARLY_ANCHOR_YEARS = (1980, 1990, 2000, 2010, 2020)
-REAL_POPULATION_ANCHORS = (
-    (1980, 117_060_396, "Census"),
-    (1985, 121_048_923, "Census"),
-    (1990, 123_611_167, "Census"),
-    (1995, 125_570_246, "Census"),
-    (2000, 126_925_843, "Census"),
-    (2005, 127_767_994, "Census"),
-    (2010, 128_057_352, "Census"),
-    (2015, 127_094_745, "Census"),
-    (2020, 126_146_099, "Census"),
-    (2070, 87_000_000, "IPSS 2023 projection"),
-)
 
 
 @dataclass(frozen=True)
@@ -167,7 +157,7 @@ def aspiration_profiles() -> list[AspirationProfile]:
 def run_base_candidate_search() -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     candidates = base_candidates()
-    reference = real_reference_frame().set_index("calendar_year")["population_index"]
+    reference = japan_reference_frame().set_index("calendar_year")["population_index"]
     for index, candidate in enumerate(candidates, start=1):
         print(f"[base {index:03d}/{len(candidates):03d}] {candidate.label}", flush=True)
         ratios: list[float] = []
@@ -313,7 +303,7 @@ def plot_profile_comparison(summary: pd.DataFrame, output_path: Path) -> None:
 
 
 def plot_reality_overlay(profile_raw: pd.DataFrame, candidate: BaseCandidate, output_path: Path) -> None:
-    reference = real_reference_frame()
+    reference = japan_reference_frame()
     selected = profile_raw.loc[profile_raw["candidate"] == candidate.name]
     fig, ax = plt.subplots(figsize=(11, 6), constrained_layout=True)
     ax.plot(
@@ -360,21 +350,6 @@ def plot_reality_overlay(profile_raw: pd.DataFrame, candidate: BaseCandidate, ou
     ax.legend(frameon=False, fontsize=8)
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
-
-
-def real_reference_frame() -> pd.DataFrame:
-    anchors = pd.DataFrame(REAL_POPULATION_ANCHORS, columns=["calendar_year", "population", "source"])
-    years = pd.DataFrame({"calendar_year": range(1980, 2071)})
-    merged = years.merge(anchors[["calendar_year", "population"]], on="calendar_year", how="left")
-    merged["population"] = merged["population"].interpolate(method="linear")
-    baseline = float(anchors.loc[anchors["calendar_year"] == 1980, "population"].iloc[0])
-    merged["population_index"] = merged["population"] / baseline
-    return merged
-
-
-def rmse_for_years(simulation: pd.Series, reference: pd.Series, years: tuple[int, ...]) -> float:
-    errors = [(float(simulation.loc[year]) - float(reference.loc[year])) ** 2 for year in years]
-    return float(sum(errors) / len(errors)) ** 0.5
 
 
 def build_report_ja(candidate_summary: pd.DataFrame, profile_summary: pd.DataFrame) -> str:
@@ -492,17 +467,6 @@ def compact_profile_display(summary: pd.DataFrame) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
-
-
-def dataframe_to_markdown(frame: pd.DataFrame) -> str:
-    columns = list(frame.columns)
-    rows = [
-        "| " + " | ".join(str(column) for column in columns) + " |",
-        "| " + " | ".join("---" for _ in columns) + " |",
-    ]
-    for _, row in frame.iterrows():
-        rows.append("| " + " | ".join(str(row[column]) for column in columns) + " |")
-    return "\n".join(rows)
 
 
 if __name__ == "__main__":

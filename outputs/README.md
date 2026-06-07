@@ -18,6 +18,7 @@ This directory contains generated simulation artifacts grouped by scenario famil
 - `gendered_aspiration/`: abstract A/B gender and one-sided aspirational selectivity follow-up.
 - `gendered_robustness/`: calibration robustness sweep for gendered aspiration conditions.
 - `reality_grounded_calibration/`: Japan-grounded calibration search for the 1980-2070-style baseline, including `reality_overlay.png` for comparing the simulation population index against public population anchors.
+- `primary_hypothesis_validation/`: factorial validation of visibility condition x aspiration profile on the Japan-grounded baseline.
 
 ## Paper Artifacts
 

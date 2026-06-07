@@ -30,6 +30,7 @@ Figures are stored under `figures/` and linked with relative paths from the pape
 - `outputs/gendered_robustness/gendered_robustness_heatmap.png`: calibration robustness heatmap for gendered aspiration conditions.
 - `outputs/reality_grounded_calibration/profile_comparison.png`: reality-grounded calibration candidate comparison.
 - `outputs/reality_grounded_calibration/reality_overlay.png`: Japan reference population-index anchors overlaid with the selected simulation trajectories.
+- `outputs/primary_hypothesis_validation/hypothesis_validation.png`: primary visibility-expansion x aspiration-profile hypothesis validation.
 
 ## Data
 
@@ -45,6 +46,7 @@ Summary CSV files used by the paper are stored under `data/`.
 - `outputs/gendered_aspiration/`: generated CSV files for the gendered aspirational selectivity follow-up.
 - `outputs/gendered_robustness/`: generated CSV files for the gendered aspiration calibration robustness sweep.
 - `outputs/reality_grounded_calibration/`: generated CSV files for the Japan-grounded calibration search.
+- `outputs/primary_hypothesis_validation/`: generated CSV files for the primary hypothesis validation.
 
 ## Notes
 
@@ -59,6 +61,7 @@ Supporting analysis notes are stored under `notes/`.
 - `gendered_robustness_report.md`: calibration robustness sweep for gendered aspiration conditions.
 - `gendered_robustness_report_ja.md`: Japanese note for the gendered aspiration robustness sweep.
 - `reality_grounded_calibration_report_ja.md`: Japanese note for the Japan-grounded calibration search.
+- `primary_hypothesis_validation_report_ja.md`: Japanese note for the primary hypothesis validation.
 
 ## Note
 

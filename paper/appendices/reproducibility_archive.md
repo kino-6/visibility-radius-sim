@@ -426,6 +426,7 @@ Representative rerun command:
 Script:
 
 - `scripts/run_reality_grounded_calibration.py`
+- shared helper: `scripts/experiment_helpers.py`
 
 Named scenario added:
 
@@ -484,6 +485,46 @@ Representative rerun command:
 
 ```bash
 .venv/bin/python scripts/run_reality_grounded_calibration.py
+```
+
+## Primary Hypothesis Validation
+
+Script:
+
+- `scripts/run_primary_hypothesis_validation.py`
+- shared helper: `scripts/experiment_helpers.py`
+
+Paper note:
+
+- `paper/notes/primary_hypothesis_validation_report_ja.md`
+
+Output archive:
+
+- `outputs/primary_hypothesis_validation/hypothesis_validation_raw.csv`
+- `outputs/primary_hypothesis_validation/hypothesis_validation_run_summary.csv`
+- `outputs/primary_hypothesis_validation/hypothesis_validation_summary.csv`
+- `outputs/primary_hypothesis_validation/hypothesis_validation.png`
+
+Seed policy:
+
+- `SEEDS = (0, 1, 2)`
+
+Tested hypothesis:
+
+- On the Japan-like calibration, expanding the candidate pool from local to
+  SNS-like/global visibility increases the population-maintenance penalty of
+  aspiration profiles that filter for only relatively high-ranked candidates.
+
+Conditions:
+
+- Base: `SimulationConfig.for_scenario("japan-2070")`
+- Visibility: local visible/actionable, SNS-like expansion, global from start
+- Aspiration: symmetric, B 500+ proxy, B light mixed, B compound-heavy
+
+Representative rerun command:
+
+```bash
+.venv/bin/python scripts/run_primary_hypothesis_validation.py
 ```
 
 ## Reproducibility Gaps

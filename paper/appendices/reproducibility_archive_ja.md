@@ -408,6 +408,7 @@ Aspiration profiles:
 Script:
 
 - `scripts/run_reality_grounded_calibration.py`
+- shared helper: `scripts/experiment_helpers.py`
 
 追加した named scenario:
 
@@ -462,6 +463,45 @@ Calibration target:
 
 ```bash
 .venv/bin/python scripts/run_reality_grounded_calibration.py
+```
+
+## Primary Hypothesis Validation
+
+Script:
+
+- `scripts/run_primary_hypothesis_validation.py`
+- shared helper: `scripts/experiment_helpers.py`
+
+Paper note:
+
+- `paper/notes/primary_hypothesis_validation_report_ja.md`
+
+Output archive:
+
+- `outputs/primary_hypothesis_validation/hypothesis_validation_raw.csv`
+- `outputs/primary_hypothesis_validation/hypothesis_validation_run_summary.csv`
+- `outputs/primary_hypothesis_validation/hypothesis_validation_summary.csv`
+- `outputs/primary_hypothesis_validation/hypothesis_validation.png`
+
+Seed 方針:
+
+- `SEEDS = (0, 1, 2)`
+
+検証した仮説:
+
+- Japan-like calibration を土台に、候補プールが local から SNS-like/global へ拡大すると、
+  相対的上位層だけを足切りする aspiration profile の人口維持ペナルティが大きくなるかを見る。
+
+条件:
+
+- Base: `SimulationConfig.for_scenario("japan-2070")`
+- Visibility: local visible/actionable, SNS-like expansion, global from start
+- Aspiration: symmetric, B 500+ proxy, B light mixed, B compound-heavy
+
+代表的な再実行コマンド:
+
+```bash
+.venv/bin/python scripts/run_primary_hypothesis_validation.py
 ```
 
 ## 残る再現性ギャップ
