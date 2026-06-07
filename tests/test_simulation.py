@@ -628,6 +628,44 @@ def test_japan_tfr_stylized_birth_schedule_declines_after_1980() -> None:
     assert birth_2000 > birth_2070
 
 
+def test_anchored_birth_schedule_interpolates_configured_multipliers() -> None:
+    simulation = Simulation(
+        SimulationConfig(
+            start_calendar_year=2000,
+            birth_probability=0.2,
+            birth_probability_schedule="anchored",
+            birth_probability_schedule_anchors=((2000, 1.0), (2010, 0.5), (2020, 1.5)),
+        )
+    )
+
+    assert np.isclose(simulation._scheduled_birth_probability(1), 0.2)
+    assert np.isclose(simulation._scheduled_birth_probability(11), 0.1)
+    assert np.isclose(simulation._scheduled_birth_probability(6), 0.15)
+    assert np.isclose(simulation._scheduled_birth_probability(21), 0.3)
+
+
+def test_young_expanding_initial_age_distribution_is_younger() -> None:
+    japan_like = Simulation(
+        SimulationConfig(
+            initial_population=2000,
+            seed=100,
+            initial_age_distribution="japan-1980-stylized",
+        )
+    )
+    young_expanding = Simulation(
+        SimulationConfig(
+            initial_population=2000,
+            seed=100,
+            initial_age_distribution="young-expanding-stylized",
+        )
+    )
+
+    japan_mean_age = np.mean([agent.age for agent in japan_like.agents])
+    young_mean_age = np.mean([agent.age for agent in young_expanding.agents])
+
+    assert young_mean_age < japan_mean_age
+
+
 def test_japan_2070_scenario_uses_reality_grounded_defaults() -> None:
     config = SimulationConfig.for_scenario("japan-2070")
 

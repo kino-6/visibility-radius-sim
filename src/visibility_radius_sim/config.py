@@ -10,12 +10,12 @@ RadiusSchedule = Literal["fixed", "linear", "sigmoid", "shock", "global"]
 ScenarioName = Literal["baseline", "sns-2000s", "japan-2070"]
 SelectionMode = Literal["percentile", "top-k"]
 LocationModel = Literal["uniform", "clustered"]
-InitialAgeDistribution = Literal["uniform", "japan-1980-stylized"]
+InitialAgeDistribution = Literal["uniform", "japan-1980-stylized", "young-expanding-stylized"]
 PhantomCandidateMode = Literal["none", "sampled"]
 GenderMode = Literal["none", "binary-balanced"]
 AspirationalGender = Literal["none", "A", "B", "both"]
 FertilityAgeProfile = Literal["flat", "japan-stylized"]
-BirthProbabilitySchedule = Literal["fixed", "japan-tfr-stylized"]
+BirthProbabilitySchedule = Literal["fixed", "japan-tfr-stylized", "anchored"]
 
 
 @dataclass(frozen=True)
@@ -73,6 +73,7 @@ class SimulationConfig:
     mutation_std: float = 0.08
     birth_probability: float = 0.25
     birth_probability_schedule: BirthProbabilitySchedule = "fixed"
+    birth_probability_schedule_anchors: tuple[tuple[int, float], ...] | None = None
     additional_child_probability: float = 0.05
     max_children_per_pair: int = 2
     fertility_age_profile: FertilityAgeProfile = "flat"

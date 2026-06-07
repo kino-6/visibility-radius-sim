@@ -185,16 +185,29 @@ class Simulation:
         if self.config.initial_age_distribution == "uniform":
             return int(self.rng.integers(self.config.initial_min_age, self.config.initial_max_age + 1))
         if self.config.initial_age_distribution == "japan-1980-stylized":
-            bins = ((0, 14), (15, 24), (25, 44), (45, 64), (65, 90))
-            weights = np.asarray([0.23, 0.15, 0.30, 0.23, 0.09], dtype=float)
-            bin_index = int(self.rng.choice(len(bins), p=weights / weights.sum()))
-            low, high = bins[bin_index]
-            low = max(low, self.config.initial_min_age)
-            high = min(high, self.config.initial_max_age)
-            if low > high:
-                return int(self.rng.integers(self.config.initial_min_age, self.config.initial_max_age + 1))
-            return int(self.rng.integers(low, high + 1))
+            return self._sample_initial_age_from_bins(
+                bins=((0, 14), (15, 24), (25, 44), (45, 64), (65, 90)),
+                weights=np.asarray([0.23, 0.15, 0.30, 0.23, 0.09], dtype=float),
+            )
+        if self.config.initial_age_distribution == "young-expanding-stylized":
+            return self._sample_initial_age_from_bins(
+                bins=((0, 14), (15, 24), (25, 44), (45, 64), (65, 90)),
+                weights=np.asarray([0.43, 0.20, 0.23, 0.11, 0.03], dtype=float),
+            )
         raise ValueError(f"Unknown initial age distribution: {self.config.initial_age_distribution}")
+
+    def _sample_initial_age_from_bins(
+        self,
+        bins: tuple[tuple[int, int], ...],
+        weights: np.ndarray,
+    ) -> int:
+        bin_index = int(self.rng.choice(len(bins), p=weights / weights.sum()))
+        low, high = bins[bin_index]
+        low = max(low, self.config.initial_min_age)
+        high = min(high, self.config.initial_max_age)
+        if low > high:
+            return int(self.rng.integers(self.config.initial_min_age, self.config.initial_max_age + 1))
+        return int(self.rng.integers(low, high + 1))
 
     def _create_location_cluster_centers(self) -> np.ndarray:
         if self.config.location_model != "clustered":
@@ -882,6 +895,16 @@ class Simulation:
                 ],
                 dtype=float,
             )
+            multiplier = float(np.interp(calendar_year, anchors[:, 0], anchors[:, 1]))
+            return float(np.clip(self.config.birth_probability * multiplier, 0.0, 1.0))
+        if self.config.birth_probability_schedule == "anchored":
+            configured_anchors = self.config.birth_probability_schedule_anchors
+            if not configured_anchors:
+                raise ValueError("birth_probability_schedule_anchors is required for anchored schedule")
+            calendar_year = self.config.start_calendar_year + year - 1
+            anchors = np.asarray(configured_anchors, dtype=float)
+            order = np.argsort(anchors[:, 0])
+            anchors = anchors[order]
             multiplier = float(np.interp(calendar_year, anchors[:, 0], anchors[:, 1]))
             return float(np.clip(self.config.birth_probability * multiplier, 0.0, 1.0))
         raise ValueError(f"Unknown birth probability schedule: {self.config.birth_probability_schedule}")
